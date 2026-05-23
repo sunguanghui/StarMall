@@ -66,19 +66,23 @@
         <el-card class="content-card">
           <template #header>
             <div class="card-header">
-              <span>最近获得的星辰币</span>
+              <span>{{ isAdmin ? '最近发放的星辰币' : '最近获得的星辰币' }}</span>
               <el-button text @click="$router.push('/my-points')">查看更多</el-button>
             </div>
           </template>
           <div class="table-wrapper">
             <el-table :data="recentThumbs" style="width: 100%" v-loading="thumbsLoading">
-              <el-table-column prop="thumb_type_name" label="类型" width="130" />
-              <el-table-column label="能量" width="80">
+              <!-- 管理员视角：显示被操作对象 -->
+              <el-table-column v-if="isAdmin" prop="user_name" label="被操作人" width="90" show-overflow-tooltip />
+              <el-table-column prop="thumb_type_name" label="类型" width="90" />
+              <el-table-column label="能量" width="65">
                 <template #default="{ row }">
                   <span :class="{ 'negative-points': row.points < 0 }">{{ row.points }}</span>
                 </template>
               </el-table-column>
               <el-table-column prop="reason" label="原因" show-overflow-tooltip />
+              <!-- 普通用户视角：显示操作人 -->
+              <el-table-column v-if="!isAdmin" prop="given_by_name" label="操作人" width="80" show-overflow-tooltip />
               <el-table-column prop="created_at" label="时间" width="160" />
             </el-table>
           </div>
@@ -89,15 +93,17 @@
         <el-card class="content-card">
           <template #header>
             <div class="card-header">
-              <span>最近兑换记录</span>
+              <span>{{ isAdmin ? '最近兑换记录（全部）' : '最近兑换记录' }}</span>
               <el-button text @click="$router.push('/my-exchanges')">查看更多</el-button>
             </div>
           </template>
           <div class="table-wrapper">
             <el-table :data="recentExchanges" style="width: 100%" v-loading="exchangesLoading">
+              <!-- 管理员视角：显示兑换人 -->
+              <el-table-column v-if="isAdmin" prop="user_name" label="兑换人" width="80" show-overflow-tooltip />
               <el-table-column prop="product_name" label="商品" show-overflow-tooltip />
-              <el-table-column prop="points_spent" label="能量" width="80" />
-              <el-table-column prop="status_name" label="状态" width="80">
+              <el-table-column prop="points_spent" label="能量" width="65" />
+              <el-table-column prop="status_name" label="状态" width="70">
                 <template #default="{ row }">
                   <el-tag :type="getStatusType(row.status)" size="small">
                     {{ row.status_name }}
@@ -123,12 +129,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
+const isAdmin = computed(() => userStore.userInfo?.role === 'admin')
 const stats = ref({})
 const recentThumbs = ref([])
 const recentExchanges = ref([])
@@ -154,7 +161,12 @@ const loadStats = async () => {
 const loadRecentThumbs = async () => {
   thumbsLoading.value = true
   try {
-    const res = await api.get('/thumbs', { params: { per_page: 5 } })
+    const params = { per_page: 5 }
+    // 管理员只看自己发放的记录
+    if (isAdmin.value) {
+      params.given_by = userStore.userInfo.id
+    }
+    const res = await api.get('/thumbs', { params })
     recentThumbs.value = res.data.list
   } catch (error) {
     console.error('加载星辰币记录失败:', error)
@@ -177,7 +189,12 @@ const loadRecentExchanges = async () => {
 
 const initChart = async () => {
   try {
-    const res = await api.get('/thumbs', { params: { per_page: 30 } })
+    const params = { per_page: 30 }
+    // 管理员图表也只显示自己发放的趋势
+    if (isAdmin.value) {
+      params.given_by = userStore.userInfo.id
+    }
+    const res = await api.get('/thumbs', { params })
     const records = res.data.list.slice().reverse()
 
     const dateMap = {}
@@ -197,9 +214,9 @@ const initChart = async () => {
     chartInstance.setOption({
       tooltip: { trigger: 'axis' },
       xAxis: { type: 'category', data: dates, axisLabel: { rotate: 30 } },
-      yAxis: { type: 'value', name: '累计能量' },
+      yAxis: { type: 'value', name: isAdmin.value ? '发放能量' : '累计能量' },
       series: [{
-        name: '累计能量',
+        name: isAdmin.value ? '发放能量' : '累计能量',
         type: 'line',
         data: values,
         smooth: true,

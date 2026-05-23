@@ -404,14 +404,26 @@ def give_thumbs():
 @jwt_required()
 def get_thumbs_records():
     """获取星辰币记录"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
     user_id = request.args.get('user_id', type=int)
-    
+    given_by = request.args.get('given_by', type=int)
+
     query = ThumbsRecord.query
-    if user_id:
-        query = query.filter_by(user_id=user_id)
-    
+
+    if current_user.role != 'admin':
+        # 普通用户只能看自己收到的记录
+        query = query.filter_by(user_id=current_user_id)
+    else:
+        # 管理员可按 user_id 或 given_by 过滤
+        if user_id:
+            query = query.filter_by(user_id=user_id)
+        if given_by:
+            query = query.filter_by(given_by=given_by)
+
     pagination = query.order_by(ThumbsRecord.created_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
