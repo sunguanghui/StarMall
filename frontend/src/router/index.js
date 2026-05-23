@@ -59,7 +59,7 @@ const routes = [
         path: '/admin/thumbs',
         name: 'AdminThumbs',
         component: () => import('@/views/admin/Thumbs.vue'),
-        meta: { title: '发放大拇哥', requireAdmin: true }
+        meta: { title: '发放星辰币', requireAdmin: true }
       },
       {
         path: '/admin/products',

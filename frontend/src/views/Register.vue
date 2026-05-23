@@ -3,7 +3,7 @@
     <div class="register-box">
       <div class="register-header">
         <h1>👍 用户注册</h1>
-        <p>欢迎加入大拇哥积分商城</p>
+        <p>欢迎加入星途补给站</p>
       </div>
       
       <el-form ref="formRef" :model="form" :rules="rules" class="register-form">

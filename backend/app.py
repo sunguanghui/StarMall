@@ -337,7 +337,7 @@ def reset_user_password(user_id):
     })
 
 
-# ==================== 大拇哥管理 API ====================
+# ==================== 星辰币管理 API ====================
 
 @app.route('/api/thumbs', methods=['POST'])
 @jwt_required()
@@ -403,7 +403,7 @@ def give_thumbs():
 @app.route('/api/thumbs', methods=['GET'])
 @jwt_required()
 def get_thumbs_records():
-    """获取大拇哥记录"""
+    """获取星辰币记录"""
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
     user_id = request.args.get('user_id', type=int)
@@ -430,7 +430,7 @@ def get_thumbs_records():
 @app.route('/api/thumbs/stats', methods=['GET'])
 @jwt_required()
 def get_thumbs_stats():
-    """获取大拇哥统计"""
+    """获取星辰币统计"""
     user_id = request.args.get('user_id', type=int)
     
     if not user_id:
@@ -441,7 +441,7 @@ def get_thumbs_stats():
     if not user:
         return jsonify({'code': 404, 'message': '用户不存在'}), 404
     
-    # 统计单双大拇哥数量
+    # 统计单双星辰币数量
     single_count = ThumbsRecord.query.filter_by(user_id=user_id, thumb_type='single').count()
     double_count = ThumbsRecord.query.filter_by(user_id=user_id, thumb_type='double').count()
     

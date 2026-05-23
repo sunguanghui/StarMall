@@ -81,7 +81,7 @@ wishlists          星际心愿单
 ## 目录结构
 
 ```
-NumbMall/
+StarMall/
 ├── backend/
 │   ├── app.py                   # 全部 API 路由（认证、星辰币、商品、兑换、心愿单、统计）
 │   ├── models.py                # SQLAlchemy 数据模型（5 张表）
@@ -135,42 +135,22 @@ NumbMall/
 
 ### 环境要求
 
-- Python 3.8+
-- Node.js 16+
-- MySQL 8.0+
+- Docker 20+
+- Docker Compose 2.0+
 
-### 步骤一：初始化数据库
-
-```bash
-mysql -u root -p < database/init.sql
-```
-
-执行后自动创建 `thumbs_mall` 数据库、5 张数据表，并写入测试账号和演示数据。
-
-### 步骤二：配置并启动后端
+### 步骤一：配置环境变量
 
 ```bash
-cd backend
-
-# 创建并激活虚拟环境
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # macOS / Linux
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 配置环境变量
-cp .env.bak .env
+cp backend/.env.bak backend/.env
 ```
 
 编辑 `backend/.env`：
 
 ```ini
-MYSQL_HOST=localhost
+MYSQL_HOST=db
 MYSQL_PORT=3306
 MYSQL_USER=root
-MYSQL_PASSWORD=your_password
+MYSQL_PASSWORD=your_strong_password
 MYSQL_DATABASE=thumbs_mall
 
 # 生产环境务必替换为随机长字符串
@@ -178,22 +158,27 @@ SECRET_KEY=your-secret-key
 JWT_SECRET_KEY=your-jwt-secret-key
 ```
 
-启动服务（默认监听 `0.0.0.0:5000`）：
+将 `docker-compose.yml` 中的 `MYSQL_ROOT_PASSWORD` 改为与上方 `MYSQL_PASSWORD` 一致的值。
+
+### 步骤二：一键启动
 
 ```bash
-python app.py
-# Windows 也可双击 run.bat
+docker-compose up -d
 ```
 
-### 步骤三：启动前端
+首次启动会自动执行 `database/init.sql`，完成建表和测试数据写入。
 
-```bash
-cd frontend
-npm install
-npm run dev        # 开发服务器，默认端口 5173
-```
+访问地址：`http://localhost:28000`
 
-浏览器访问 `http://localhost:5173`
+> 生产环境建议在前置 Nginx 配置 HTTPS，并将密钥替换为足够随机的值。
+
+### 服务说明
+
+| 服务 | 说明 | 端口 |
+|------|------|------|
+| `starmall_db` | MySQL 8.0 数据库 | 仅内部 3306 |
+| `starmall_backend` | Flask + Gunicorn | 仅内部 5000 |
+| `starmall_frontend` | Nginx 静态托管 + 反向代理 | **28000** |
 
 ### 默认账号
 
@@ -202,30 +187,6 @@ npm run dev        # 开发服务器，默认端口 5173
 | `admin` | `admin123` | 管理员 | 家长，拥有全部管理权限 |
 | `zhangsan` | `user123` | 普通用户 | 孩子，初始 100 能量 |
 | `lisi` | `user123` | 普通用户 | 孩子，初始 50 能量 |
-
----
-
-## Docker 部署
-
-```bash
-# 1. 修改 docker-compose.yml 中的 MYSQL_ROOT_PASSWORD
-# 2. 修改 backend/.env 中的 MYSQL_PASSWORD 与之保持一致
-# 3. 一键启动
-
-docker-compose up -d
-```
-
-| 服务 | 说明 | 端口 |
-|------|------|------|
-| `numbmall_db` | MySQL 8.0 数据库 | 3306 |
-| `numbmall_backend` | Flask + Gunicorn | 仅内部 5000 |
-| `numbmall_frontend` | Nginx 静态托管 + 反向代理 | **28000** |
-
-首次启动时 `database/init.sql` 会被自动执行，无需手动初始化数据库。
-
-访问地址：`http://localhost:28000`
-
-> **生产环境提示**：建议在 Nginx 前置层配置 HTTPS，并将 `SECRET_KEY` / `JWT_SECRET_KEY` 替换为足够随机的值。
 
 ---
 

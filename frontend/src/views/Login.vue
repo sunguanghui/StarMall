@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-box">
       <div class="login-header">
-        <h1>👍 大拇哥积分商城</h1>
+        <h1>🚀 星途补给站</h1>
         <p>欢迎登录</p>
       </div>
       
