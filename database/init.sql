@@ -120,6 +120,15 @@ CREATE TABLE IF NOT EXISTS task_logs (
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务执行记录表';
 
+-- 默认管理员账号 (密码: admin123)，超级管理员
+INSERT INTO users (username, password, real_name, role, is_super_admin, total_points, available_points) VALUES
+('admin', 'scrypt:32768:8:1$i0kfF5rTSvoYIK8w$f3a64acc3231e2ae09726f8ec928b75a5617105889add4813756d6adb6ed2ded6b5e8f4102732f34f40e3e48aec18baff3128f974d6933ea77eb71f7e3abadfd', '系统管理员', 'admin', 1, 0, 0);
+
+-- 测试用户 (密码: user123)
+INSERT INTO users (username, password, real_name, email, total_points, available_points) VALUES
+('zhangsan', 'scrypt:32768:8:1$RYUIJQhxyh2NrIZM$bbdd6fa8eb3a1d72ae2c1eb347bb8363b61fd16951791512dcb7c2371ed97a32d9ee6edf95d1da739d1745492cc1cbddc53285cfd4b909c38f21dbebb531c4d6', '张三', 'zhangsan@example.com', 100, 100),
+('lisi', 'scrypt:32768:8:1$kbt6ZfAICQTlL1fX$fafbc667c308f90851d4e833757c558b4b79d1dc4a03addb9fe1c5a547faf1a4407e30bcf00fc99ee157b9031f59ad8977deb05ad4abe235b28ee2821586f673', '李四', 'lisi@example.com', 50, 50);
+
 -- 示例任务数据（归属超级管理员，所有舰长均可审批）
 INSERT INTO tasks (title, type, energy_reward, is_active, created_by) VALUES
 ('完成今日阅读打卡', 'daily', 1, 1, 1),
@@ -129,15 +138,6 @@ INSERT INTO tasks (title, type, energy_reward, is_active, created_by) VALUES
 ('背诵10个英语单词', 'daily', 1, 1, 1),
 ('完成一本书的阅读', 'milestone', 10, 1, 1),
 ('期末考试进入班级前十', 'milestone', 20, 1, 1);
-
--- 默认管理员账号 (密码: admin123)，超级管理员
-INSERT INTO users (username, password, real_name, role, is_super_admin, total_points, available_points) VALUES
-('admin', 'scrypt:32768:8:1$i0kfF5rTSvoYIK8w$f3a64acc3231e2ae09726f8ec928b75a5617105889add4813756d6adb6ed2ded6b5e8f4102732f34f40e3e48aec18baff3128f974d6933ea77eb71f7e3abadfd', '系统管理员', 'admin', 1, 0, 0);
-
--- 测试用户 (密码: user123)
-INSERT INTO users (username, password, real_name, email, total_points, available_points) VALUES
-('zhangsan', 'scrypt:32768:8:1$RYUIJQhxyh2NrIZM$bbdd6fa8eb3a1d72ae2c1eb347bb8363b61fd16951791512dcb7c2371ed97a32d9ee6edf95d1da739d1745492cc1cbddc53285cfd4b909c38f21dbebb531c4d6', '张三', 'zhangsan@example.com', 100, 100),
-('lisi', 'scrypt:32768:8:1$kbt6ZfAICQTlL1fX$fafbc667c308f90851d4e833757c558b4b79d1dc4a03addb9fe1c5a547faf1a4407e30bcf00fc99ee157b9031f59ad8977deb05ad4abe235b28ee2821586f673', '李四', 'lisi@example.com', 50, 50);
 
 -- 测试商品
 INSERT INTO products (name, description, points_required, stock, status, sort_order) VALUES
