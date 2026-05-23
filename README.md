@@ -177,7 +177,7 @@ docker-compose up -d
 | 服务 | 说明 | 端口 |
 |------|------|------|
 | `starmall_db` | MySQL 8.0 数据库 | 仅内部 3306 |
-| `starmall_backend` | Flask + Gunicorn | 仅内部 5000 |
+| `starmall_backend` | Flask + Gunicorn | **28001** |
 | `starmall_frontend` | Nginx 静态托管 + 反向代理 | **28000** |
 
 ### 默认账号
@@ -192,7 +192,7 @@ docker-compose up -d
 
 ## API 概览
 
-Base URL：`http://localhost:5000/api`
+Base URL：`http://localhost:28001/api`
 
 所有需要认证的接口需在请求头携带：`Authorization: Bearer <token>`
 

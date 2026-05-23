@@ -67,7 +67,7 @@ docker-compose up -d
 | 服务名 | 说明 | 对外端口 |
 |--------|------|---------|
 | `starmall_db` | MySQL 8.0 | 3306（仅内部） |
-| `starmall_backend` | Flask + Gunicorn（2 workers） | 5000（仅内部） |
+| `starmall_backend` | Flask + Gunicorn（2 workers） | **28001** |
 | `starmall_frontend` | Nginx 静态托管 + 反向代理 | **28000** |
 
 ---

@@ -974,5 +974,5 @@ if __name__ == '__main__':
             db.session.commit()
             print('已创建默认管理员账号: admin / admin123')
     
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=28001, debug=True)
 

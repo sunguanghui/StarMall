@@ -26,6 +26,8 @@ services:
       - ./backend/.env
     volumes:
       - ./backend/uploads:/app/uploads
+    ports:
+      - "28001:28001"
     depends_on:
       - db
 

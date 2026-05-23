@@ -19,8 +19,8 @@ RUN pip install gunicorn
 
 COPY . .
 
-# 暴露 5000 端口
-EXPOSE 5000
+# 暴露 28001 端口
+EXPOSE 28001
 
 # 启动 Flask 服务
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:28001", "app:app"]

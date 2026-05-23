@@ -2,7 +2,7 @@
 
 ## 基础信息
 
-- 基础URL: `http://localhost:5000/api`
+- 基础URL: `http://localhost:28001/api`
 - 所有需要认证的接口都需要在请求头中携带 Token: `Authorization: Bearer <token>`
 
 ## 响应格式
