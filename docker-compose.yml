@@ -5,9 +5,10 @@ services:
     container_name: starmall_db
     restart: unless-stopped
     environment:
-      # 【重点修改这里】：必须和 .env 里配置的密码库名完全一致
-      MYSQL_ROOT_PASSWORD: Abc12345++    
+      MYSQL_ROOT_PASSWORD: Abc12345++
       MYSQL_DATABASE: star_mall
+      MYSQL_USER: starmall
+      MYSQL_PASSWORD: Abc12345++
     volumes:
       - db_data:/var/lib/mysql
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql

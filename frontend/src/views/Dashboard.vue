@@ -1,10 +1,10 @@
 <template>
   <div class="dashboard">
     <div class="stats-cards">
-      <el-card class="stat-card" shadow="hover">
+      <el-card class="stat-card stat-card-1" shadow="never">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #e6f7ff;">
-            <el-icon :size="30" color="#1890ff"><TrophyBase /></el-icon>
+          <div class="stat-icon">
+            <el-icon :size="32" color="white"><TrophyBase /></el-icon>
           </div>
           <div class="stat-info">
             <p class="stat-title">总能量</p>
@@ -13,10 +13,10 @@
         </div>
       </el-card>
 
-      <el-card class="stat-card" shadow="hover">
+      <el-card class="stat-card stat-card-2" shadow="never">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #f6ffed;">
-            <el-icon :size="30" color="#52c41a"><Wallet /></el-icon>
+          <div class="stat-icon">
+            <el-icon :size="32" color="white"><Wallet /></el-icon>
           </div>
           <div class="stat-info">
             <p class="stat-title">可用能量</p>
@@ -25,10 +25,10 @@
         </div>
       </el-card>
 
-      <el-card class="stat-card" shadow="hover">
+      <el-card class="stat-card stat-card-3" shadow="never">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #fff7e6;">
-            <el-icon :size="30" color="#faad14"><Star /></el-icon>
+          <div class="stat-icon">
+            <el-icon :size="32" color="white"><Star /></el-icon>
           </div>
           <div class="stat-info">
             <p class="stat-title">获得星辰币</p>
@@ -37,10 +37,10 @@
         </div>
       </el-card>
 
-      <el-card class="stat-card" shadow="hover">
+      <el-card class="stat-card stat-card-4" shadow="never">
         <div class="stat-content">
-          <div class="stat-icon" style="background: #fff0f6;">
-            <el-icon :size="30" color="#eb2f96"><ShoppingCart /></el-icon>
+          <div class="stat-icon">
+            <el-icon :size="32" color="white"><ShoppingCart /></el-icon>
           </div>
           <div class="stat-info">
             <p class="stat-title">兑换次数</p>
@@ -189,9 +189,17 @@ const initChart = async () => {
         type: 'line',
         data: values,
         smooth: true,
-        areaStyle: { color: 'rgba(24,144,255,0.15)' },
-        lineStyle: { color: '#1890ff' },
-        itemStyle: { color: '#1890ff' }
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(255, 107, 157, 0.4)' },
+              { offset: 1, color: 'rgba(255, 107, 157, 0.02)' }
+            ]
+          }
+        },
+        lineStyle: { color: '#FF6B9D', width: 3 },
+        itemStyle: { color: '#FF6B9D', borderWidth: 3, borderColor: 'white' }
       }],
       grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true }
     })
@@ -223,31 +231,51 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
   cursor: pointer;
-  transition: transform 0.3s;
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  border-radius: 24px !important;
 }
 
 .stat-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+.stat-card-1 {
+  background: linear-gradient(135deg, #FF6B9D 0%, #FF8E53 100%) !important;
+}
+
+.stat-card-2 {
+  background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%) !important;
+}
+
+.stat-card-3 {
+  background: linear-gradient(135deg, #F7971E 0%, #FFD200 100%) !important;
+}
+
+.stat-card-4 {
+  background: linear-gradient(135deg, #A18CD1 0%, #FBC2EB 100%) !important;
 }
 
 .stat-content {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 16px;
 }
 
 .stat-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 10px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .stat-info {
@@ -256,15 +284,17 @@ onBeforeUnmount(() => {
 
 .stat-title {
   font-size: 14px;
-  color: #666;
-  margin: 0 0 8px 0;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 6px 0;
+  font-weight: 500;
 }
 
 .stat-value {
-  font-size: 28px;
-  font-weight: bold;
+  font-size: 36px;
+  font-weight: 900;
   margin: 0;
-  color: #333;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .content-card {
@@ -275,6 +305,9 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #444;
 }
 
 .negative-points {

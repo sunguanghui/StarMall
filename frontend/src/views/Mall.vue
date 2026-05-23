@@ -238,46 +238,59 @@ onMounted(() => {
 }
 
 .search-card {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #fff0f8 0%, #fff8f0 100%) !important;
 }
 
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  gap: 24px;
   min-height: 400px;
 }
 
 .product-card {
   cursor: pointer;
-  transition: transform 0.3s;
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
   display: flex;
   flex-direction: column;
+  border-radius: 24px !important;
+  overflow: hidden;
 }
 
 .product-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 50px rgba(255, 107, 157, 0.2) !important;
 }
 
 .blind-box-card {
-  background: linear-gradient(135deg, #fff9f0 0%, #fff3e0 100%);
-  border: 1px solid #ffd666 !important;
+  background: linear-gradient(135deg, #fff9f0 0%, #fff3e0 100%) !important;
+  box-shadow: 0 8px 30px rgba(255, 170, 0, 0.15) !important;
 }
 
 .blind-box-card:hover {
-  box-shadow: 0 4px 20px rgba(255, 170, 0, 0.25) !important;
+  box-shadow: 0 20px 50px rgba(255, 170, 0, 0.3) !important;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.08); }
+}
+
+.blind-box-card .product-image {
+  animation: twinkle 2s ease-in-out infinite;
 }
 
 .product-image {
   width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
-  border-radius: 4px;
-  margin-bottom: 15px;
+  border-radius: 16px;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
+  background: linear-gradient(135deg, #FFF0F5 0%, #F0F8FF 100%);
 }
 
 .product-image img {
@@ -286,6 +299,11 @@ onMounted(() => {
   width: auto;
   height: auto;
   object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image img {
+  transform: scale(1.08);
 }
 
 .no-image {
@@ -295,29 +313,30 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
+  background: linear-gradient(135deg, #FFF0F5 0%, #F0F8FF 100%);
 }
 
 .no-image p {
   margin-top: 10px;
-  font-size: 12px;
-  color: #999;
+  font-size: 13px;
+  color: #ccc;
 }
 
 .product-info {
   flex: 1;
   display: flex;
   flex-direction: column;
+  padding: 0 4px;
 }
 
 .product-tags {
-  margin-bottom: 6px;
-  min-height: 22px;
+  margin-bottom: 8px;
+  min-height: 24px;
 }
 
 .product-name {
-  font-size: 16px;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 800;
   margin: 0 0 10px 0;
   color: #333;
   overflow: hidden;
@@ -327,52 +346,81 @@ onMounted(() => {
 
 .product-desc {
   font-size: 14px;
-  color: #666;
-  margin: 0 0 15px 0;
-  height: 40px;
+  color: #888;
+  margin: 0 0 16px 0;
+  height: 42px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  line-height: 1.5;
 }
 
 .product-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .product-price {
   display: flex;
   align-items: baseline;
-  gap: 5px;
+  gap: 4px;
 }
 
 .price-label {
-  font-size: 12px;
-  color: #999;
+  font-size: 13px;
+  color: #aaa;
 }
 
 .price-value {
-  font-size: 20px;
-  font-weight: bold;
-  color: #ff4d4f;
+  font-size: 24px;
+  font-weight: 900;
+  color: #FF6B9D;
+}
+
+.price-value::before {
+  content: '⚡ ';
+  font-size: 16px;
 }
 
 .product-stock {
-  font-size: 12px;
-  color: #999;
+  font-size: 13px;
+  color: #bbb;
+  background: #f5f5f5;
+  padding: 2px 10px;
+  border-radius: 20px;
 }
 
 .exchange-button {
   width: 100%;
   margin-top: auto;
+  height: 48px !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  background: linear-gradient(135deg, #FF6B9D 0%, #FF8E53 100%) !important;
+  border: none !important;
+  color: white !important;
+  box-shadow: 0 6px 20px rgba(255, 107, 157, 0.35) !important;
+  transition: all 0.3s ease !important;
+}
+
+.exchange-button:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 28px rgba(255, 107, 157, 0.5) !important;
+  filter: brightness(1.08);
+}
+
+.exchange-button:disabled {
+  background: linear-gradient(135deg, #ddd 0%, #ccc 100%) !important;
+  box-shadow: none !important;
+  color: #aaa !important;
 }
 
 .pagination {
-  margin-top: 30px;
+  margin-top: 32px;
   display: flex;
   justify-content: center;
 }
@@ -380,18 +428,20 @@ onMounted(() => {
 .exchange-dialog-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  padding: 8px 0;
 }
 
 .exchange-info {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   color: #666;
 }
 
 .exchange-highlight {
-  color: #ff4d4f;
-  font-weight: 600;
+  color: #FF6B9D;
+  font-weight: 700;
+  font-size: 17px;
   margin-left: 4px;
 }
 
@@ -401,7 +451,8 @@ onMounted(() => {
 
 .exchange-tip {
   margin: 0;
-  font-size: 12px;
-  color: #999;
+  font-size: 13px;
+  color: #bbb;
+  text-align: center;
 }
 </style>

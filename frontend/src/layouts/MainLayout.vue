@@ -107,65 +107,88 @@ const handleCommand = (command) => {
 }
 
 .sidebar {
-  background: #001529;
+  background: linear-gradient(180deg, #7B68EE 0%, #9B59B6 50%, #8E44AD 100%);
   color: white;
 }
 
 .logo {
-  height: 60px;
+  height: 70px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #002140;
+  background: rgba(255, 255, 255, 0.15);
   color: white;
+  backdrop-filter: blur(4px);
 }
 
 .logo h2 {
-  font-size: 18px;
+  font-size: 17px;
   margin: 0;
+  font-weight: 800;
+  letter-spacing: 1px;
 }
 
 .menu {
   border-right: none;
-  background: #001529;
+  background: transparent;
 }
 
 .menu :deep(.el-menu-item) {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  margin: 4px 8px;
+  height: 46px;
+  font-size: 15px;
+  transition: all 0.3s ease;
 }
 
-.menu :deep(.el-menu-item:hover),
-.menu :deep(.el-menu-item.is-active) {
+.menu :deep(.el-menu-item:hover) {
   color: white;
-  background: #1890ff !important;
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+.menu :deep(.el-menu-item.is-active) {
+  color: #7B68EE;
+  background: white !important;
+  font-weight: bold;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
 .menu :deep(.el-sub-menu__title) {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  margin: 4px 8px;
+  height: 46px;
+  font-size: 15px;
 }
 
 .menu :deep(.el-sub-menu__title:hover) {
   color: white;
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.25) !important;
 }
 
 .menu :deep(.el-menu--inline) {
-  background: #000c17 !important;
+  background: rgba(0, 0, 0, 0.1) !important;
+  border-radius: 12px;
+  margin: 4px 8px;
 }
 
 .menu :deep(.el-menu--inline .el-menu-item) {
-  background: #000c17 !important;
-  color: rgba(255, 255, 255, 0.65);
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 2px 4px;
+  border-radius: 10px;
 }
 
 .menu :deep(.el-menu--inline .el-menu-item:hover) {
-  background: #1890ff !important;
+  background: rgba(255, 255, 255, 0.2) !important;
   color: white;
 }
 
 .menu :deep(.el-menu--inline .el-menu-item.is-active) {
-  background: #1890ff !important;
-  color: white;
+  background: white !important;
+  color: #7B68EE;
+  font-weight: bold;
 }
 
 .header {
@@ -174,7 +197,7 @@ const handleCommand = (command) => {
   align-items: center;
   justify-content: flex-end;
   padding: 0 20px;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  box-shadow: 0 4px 20px rgba(255, 107, 157, 0.1);
 }
 
 .header-right {
@@ -184,12 +207,13 @@ const handleCommand = (command) => {
 }
 
 .username {
-  font-size: 14px;
+  font-size: 15px;
   color: #666;
+  font-weight: 600;
 }
 
 .main-content {
-  padding: 20px;
-  background: #f0f2f5;
+  padding: 24px;
+  background: #FFF8F0;
 }
 </style>
