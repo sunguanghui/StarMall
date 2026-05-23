@@ -245,11 +245,11 @@ onBeforeUnmount(() => {
 /* ===== 星际导航面板区域 ===== */
 .galaxy-section {
   position: relative;
-  min-height: 300px;
+  min-height: 220px;
   border-radius: 32px;
   overflow: hidden;
   background: linear-gradient(160deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   box-shadow: 0 20px 60px rgba(15, 12, 41, 0.4);
 }
 
@@ -330,8 +330,8 @@ onBeforeUnmount(() => {
 
 .cockpit-ring {
   position: absolute;
-  width: 160px;
-  height: 160px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   border: 2px dashed rgba(255, 255, 255, 0.2);
   animation: rotateSlow 20s linear infinite;
@@ -343,8 +343,8 @@ onBeforeUnmount(() => {
 }
 
 .cockpit-inner {
-  width: 120px;
-  height: 120px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(12px);
@@ -364,30 +364,30 @@ onBeforeUnmount(() => {
 }
 
 .cockpit-emoji {
-  font-size: 28px;
+  font-size: 20px;
   line-height: 1;
 }
 
 .cockpit-name {
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 900;
   color: white;
   text-shadow: 0 0 10px rgba(255,255,255,0.8);
 }
 
 .cockpit-label {
-  font-size: 11px;
+  font-size: 10px;
   color: rgba(255, 255, 255, 0.65);
 }
 
 .cockpit-btn {
   margin-top: 4px;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 20px;
   border: none;
   background: linear-gradient(135deg, #FF6B9D, #FF8E53);
   color: white;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -406,14 +406,14 @@ onBeforeUnmount(() => {
 /* ===== 能量星球通用样式 ===== */
 .planet {
   position: absolute;
-  width: 130px;
-  height: 130px;
+  width: 95px;
+  height: 95px;
   border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   z-index: 5;
@@ -430,12 +430,12 @@ onBeforeUnmount(() => {
 }
 
 .planet-emoji {
-  font-size: 24px;
+  font-size: 18px;
   line-height: 1;
 }
 
 .planet-value {
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 900;
   color: white;
   text-shadow: 0 2px 10px rgba(0,0,0,0.3);
@@ -443,7 +443,7 @@ onBeforeUnmount(() => {
 }
 
 .planet-label {
-  font-size: 11px;
+  font-size: 10px;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
 }
@@ -525,11 +525,11 @@ onBeforeUnmount(() => {
 /* ===== 平板适配 ===== */
 @media (max-width: 1200px) {
   .planet {
-    width: 110px;
-    height: 110px;
+    width: 80px;
+    height: 80px;
   }
-  .planet-value { font-size: 22px; }
-  .cockpit-inner { width: 105px; height: 105px; }
+  .planet-value { font-size: 18px; }
+  .cockpit-inner { width: 78px; height: 78px; }
 }
 
 /* ===== 移动端适配（切换为网格布局）===== */
