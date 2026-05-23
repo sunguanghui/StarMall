@@ -61,7 +61,7 @@
     </div>
 
     <!-- 下方内容区 -->
-    <el-row :gutter="20" style="margin-top: 24px;">
+    <el-row :gutter="20" style="margin-top: 12px;">
       <el-col :xs="24" :sm="12">
         <el-card class="content-card">
           <template #header>
@@ -245,11 +245,11 @@ onBeforeUnmount(() => {
 /* ===== 星际导航面板区域 ===== */
 .galaxy-section {
   position: relative;
-  min-height: 440px;
+  min-height: 300px;
   border-radius: 32px;
   overflow: hidden;
   background: linear-gradient(160deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-  margin-bottom: 24px;
+  margin-bottom: 12px;
   box-shadow: 0 20px 60px rgba(15, 12, 41, 0.4);
 }
 
@@ -343,8 +343,8 @@ onBeforeUnmount(() => {
 }
 
 .cockpit-inner {
-  width: 140px;
-  height: 140px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(12px);
@@ -406,8 +406,8 @@ onBeforeUnmount(() => {
 /* ===== 能量星球通用样式 ===== */
 .planet {
   position: absolute;
-  width: 150px;
-  height: 150px;
+  width: 130px;
+  height: 130px;
   border-radius: 50%;
   display: flex;
   flex-direction: column;
@@ -430,12 +430,12 @@ onBeforeUnmount(() => {
 }
 
 .planet-emoji {
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1;
 }
 
 .planet-value {
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 900;
   color: white;
   text-shadow: 0 2px 10px rgba(0,0,0,0.3);
@@ -443,14 +443,14 @@ onBeforeUnmount(() => {
 }
 
 .planet-label {
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
 }
 
 /* ===== 四颗星球位置与颜色 ===== */
 .planet-1 {
-  top: 10%;
+  top: 6%;
   left: 6%;
   background: radial-gradient(circle at 35% 35%, #FFD200, #F7971E);
   box-shadow: 0 0 40px rgba(247, 151, 30, 0.5), 0 12px 30px rgba(0,0,0,0.3);
@@ -458,7 +458,7 @@ onBeforeUnmount(() => {
 }
 
 .planet-2 {
-  bottom: 10%;
+  bottom: 6%;
   left: 6%;
   background: radial-gradient(circle at 35% 35%, #7FFFD4, #4ECDC4, #44A08D);
   box-shadow: 0 0 40px rgba(78, 205, 196, 0.5), 0 12px 30px rgba(0,0,0,0.3);
@@ -466,7 +466,7 @@ onBeforeUnmount(() => {
 }
 
 .planet-3 {
-  top: 10%;
+  top: 6%;
   right: 6%;
   background: radial-gradient(circle at 35% 35%, #FFB3C8, #FF6B9D, #FF8E53);
   box-shadow: 0 0 40px rgba(255, 107, 157, 0.5), 0 12px 30px rgba(0,0,0,0.3);
@@ -474,7 +474,7 @@ onBeforeUnmount(() => {
 }
 
 .planet-4 {
-  bottom: 10%;
+  bottom: 6%;
   right: 6%;
   background: radial-gradient(circle at 35% 35%, #a78bfa, #667eea, #764ba2);
   box-shadow: 0 0 40px rgba(102, 126, 234, 0.5), 0 12px 30px rgba(0,0,0,0.3);
@@ -488,11 +488,13 @@ onBeforeUnmount(() => {
 
 /* ===== 下方内容卡片 ===== */
 .content-card {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .table-wrapper {
   overflow-x: auto;
+  max-height: 220px;
+  overflow-y: auto;
 }
 
 .card-header {
@@ -516,18 +518,18 @@ onBeforeUnmount(() => {
 }
 
 .chart-container {
-  height: 280px;
+  height: 220px;
   width: 100%;
 }
 
 /* ===== 平板适配 ===== */
 @media (max-width: 1200px) {
   .planet {
-    width: 130px;
-    height: 130px;
+    width: 110px;
+    height: 110px;
   }
-  .planet-value { font-size: 26px; }
-  .cockpit-inner { width: 120px; height: 120px; }
+  .planet-value { font-size: 22px; }
+  .cockpit-inner { width: 105px; height: 105px; }
 }
 
 /* ===== 移动端适配（切换为网格布局）===== */
