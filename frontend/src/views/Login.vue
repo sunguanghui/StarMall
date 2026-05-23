@@ -15,6 +15,106 @@
     <div class="float-el float-rocket">🚀</div>
     <div class="float-el float-planet">🪐</div>
 
+    <!-- Q版宇航员 SVG -->
+    <div class="astronaut-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200" width="160" height="200" class="astronaut-svg">
+        <!-- 背包推进器 -->
+        <rect x="55" y="105" width="50" height="38" rx="10" fill="#D0D0E8"/>
+        <rect x="62" y="112" width="14" height="10" rx="4" fill="#B0B0D0"/>
+        <rect x="84" y="112" width="14" height="10" rx="4" fill="#B0B0D0"/>
+        <!-- 喷火 -->
+        <ellipse cx="69" cy="148" rx="6" ry="9" fill="#FF8E53" opacity="0.85">
+          <animate attributeName="ry" values="9;13;9" dur="0.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.85;0.5;0.85" dur="0.5s" repeatCount="indefinite"/>
+        </ellipse>
+        <ellipse cx="91" cy="148" rx="6" ry="9" fill="#FFD200" opacity="0.85">
+          <animate attributeName="ry" values="9;13;9" dur="0.6s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.85;0.5;0.85" dur="0.6s" repeatCount="indefinite"/>
+        </ellipse>
+
+        <!-- 身体 (宇航服) -->
+        <ellipse cx="80" cy="118" rx="36" ry="38" fill="#F0F0FF"/>
+        <!-- 宇航服马卡龙粉装饰条 -->
+        <rect x="68" y="108" width="24" height="5" rx="2.5" fill="#FF99BB"/>
+        <!-- 宇航服薄荷绿装饰条 -->
+        <rect x="60" y="118" width="40" height="4" rx="2" fill="#4ECDC4"/>
+        <!-- 胸口控制面板 -->
+        <rect x="66" y="125" width="28" height="18" rx="6" fill="#C8C8E8"/>
+        <circle cx="73" cy="131" r="3" fill="#FF6B9D"/>
+        <circle cx="80" cy="131" r="3" fill="#FFD200"/>
+        <circle cx="87" cy="131" r="3" fill="#4ECDC4"/>
+        <rect x="70" y="137" width="20" height="3" rx="1.5" fill="#A0A0C8"/>
+
+        <!-- 左臂 -->
+        <ellipse cx="40" cy="118" rx="10" ry="18" rx="10" fill="#F0F0FF" transform="rotate(-15 40 118)"/>
+        <!-- 左手套 -->
+        <ellipse cx="33" cy="132" rx="9" ry="8" fill="#D0D0E8"/>
+
+        <!-- 右臂（伸出去抱星星） -->
+        <ellipse cx="120" cy="112" rx="10" ry="18" fill="#F0F0FF" transform="rotate(20 120 112)"/>
+        <!-- 右手套 -->
+        <ellipse cx="128" cy="126" rx="9" ry="8" fill="#D0D0E8"/>
+
+        <!-- 怀里的星星 ★ -->
+        <g transform="translate(118, 130) rotate(-15)">
+          <polygon points="16,0 20,11 32,11 22,18 26,29 16,22 6,29 10,18 0,11 12,11" fill="#FFD700"/>
+          <polygon points="16,0 20,11 32,11 22,18 26,29 16,22 6,29 10,18 0,11 12,11" fill="url(#starGlow)" opacity="0.6"/>
+          <!-- 星星高光 -->
+          <circle cx="12" cy="8" r="3" fill="white" opacity="0.5"/>
+          <defs>
+            <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#FFFACD"/>
+              <stop offset="100%" stop-color="#FFD700" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+        </g>
+        <!-- 星星发光动效 -->
+        <g transform="translate(118, 130) rotate(-15)" opacity="0">
+          <polygon points="16,0 20,11 32,11 22,18 26,29 16,22 6,29 10,18 0,11 12,11" fill="#FFD700"/>
+          <animate attributeName="opacity" values="0;0.4;0" dur="1.5s" repeatCount="indefinite"/>
+        </g>
+
+        <!-- 头盔外框 -->
+        <ellipse cx="80" cy="72" rx="38" ry="40" fill="#E8E8F8"/>
+        <!-- 头盔玻璃面罩 -->
+        <ellipse cx="80" cy="72" rx="30" ry="32" fill="rgba(180,220,255,0.55)"/>
+        <!-- 面罩高光 -->
+        <ellipse cx="68" cy="60" rx="8" ry="5" fill="white" opacity="0.45" transform="rotate(-20 68 60)"/>
+        <ellipse cx="74" cy="54" rx="4" ry="2.5" fill="white" opacity="0.3" transform="rotate(-20 74 54)"/>
+
+        <!-- 脸 -->
+        <ellipse cx="80" cy="73" rx="22" ry="24" fill="#FFDAB9"/>
+        <!-- 眼睛 -->
+        <ellipse cx="71" cy="67" rx="5" ry="6" fill="#4A3728"/>
+        <ellipse cx="89" cy="67" rx="5" ry="6" fill="#4A3728"/>
+        <!-- 眼睛高光 -->
+        <circle cx="73" cy="65" r="2" fill="white"/>
+        <circle cx="91" cy="65" r="2" fill="white"/>
+        <!-- 微笑嘴巴 -->
+        <path d="M 70 80 Q 80 90 90 80" stroke="#C47B5A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <!-- 腮红 -->
+        <ellipse cx="65" cy="77" rx="8" ry="5" fill="#FFB3C8" opacity="0.55"/>
+        <ellipse cx="95" cy="77" rx="8" ry="5" fill="#FFB3C8" opacity="0.55"/>
+
+        <!-- 头盔边框装饰 -->
+        <ellipse cx="80" cy="72" rx="38" ry="40" fill="none" stroke="#D0D0F0" stroke-width="3"/>
+        <!-- 头盔顶部天线 -->
+        <line x1="80" y1="32" x2="80" y2="18" stroke="#D0D0E8" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="80" cy="15" r="5" fill="#FF99BB"/>
+        <circle cx="80" cy="15" r="3" fill="#FFD6E3">
+          <animate attributeName="r" values="3;5;3" dur="1.2s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;0.4;1" dur="1.2s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- 腿部 -->
+        <rect x="58" y="148" width="20" height="28" rx="10" fill="#E8E8F8"/>
+        <rect x="82" y="148" width="20" height="28" rx="10" fill="#E8E8F8"/>
+        <!-- 靴子 -->
+        <ellipse cx="68" cy="177" rx="13" ry="8" fill="#D0D0E8"/>
+        <ellipse cx="92" cy="177" rx="13" ry="8" fill="#D0D0E8"/>
+      </svg>
+    </div>
+
     <!-- 玻璃态登录卡片 -->
     <div class="login-box">
       <div class="login-header">
@@ -434,6 +534,30 @@ const handleLogin = async () => {
   text-shadow: 0 0 10px rgba(255, 107, 157, 0.8);
 }
 
+/* ===== 宇航员 ===== */
+.astronaut-wrap {
+  position: absolute;
+  z-index: 15;
+  /* 紧贴登录卡片右侧，垂直居中偏上 */
+  left: calc(50% + 210px);
+  top: 50%;
+  transform: translateY(-60%);
+  pointer-events: none;
+  animation: astronautFloat 4.5s ease-in-out infinite;
+  filter:
+    drop-shadow(0 0 18px rgba(255, 107, 157, 0.5))
+    drop-shadow(0 8px 24px rgba(0, 0, 0, 0.35));
+}
+
+.astronaut-svg {
+  display: block;
+}
+
+@keyframes astronautFloat {
+  0%,  100% { transform: translateY(-60%) rotate(-2deg); }
+  50%        { transform: translateY(calc(-60% - 15px)) rotate(2deg); }
+}
+
 /* ===== 移动端适配 ===== */
 @media (max-width: 480px) {
   .login-box {
@@ -446,5 +570,13 @@ const handleLogin = async () => {
   .float-rocket    { display: none; }
   .float-planet    { display: none; }
   .float-star      { top: 6%; left: 5%; font-size: 32px; }
+  .astronaut-wrap  { display: none; }
+}
+
+@media (max-width: 900px) and (min-width: 481px) {
+  .astronaut-wrap {
+    left: calc(50% + 180px);
+    transform: translateY(-60%) scale(0.75);
+  }
 }
 </style>
