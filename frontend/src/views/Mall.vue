@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="mall">
     <el-card class="search-card">
       <el-input
@@ -14,55 +14,53 @@
         </template>
       </el-input>
     </el-card>
-    
+
     <div class="products-grid" v-loading="loading">
       <el-card
         v-for="product in products"
         :key="product.id"
-        class="product-card"
+        :class="['product-card', { 'blind-box-card': product.is_blind_box }]"
         shadow="hover"
       >
         <div class="product-image">
-          <img
-            v-if="product.image_url"
-            :src="product.image_url"
-            :alt="product.name"
-          />
+          <img v-if="product.image_url" :src="product.image_url" :alt="product.name" />
           <div v-else class="no-image">
             <el-icon :size="60" color="#ccc"><Picture /></el-icon>
             <p>暂无图片</p>
           </div>
         </div>
-        
+
         <div class="product-info">
+          <div class="product-tags">
+            <el-tag v-if="product.is_blind_box" type="warning" size="small">🎁 盲盒</el-tag>
+          </div>
           <h3 class="product-name">{{ product.name }}</h3>
           <p class="product-desc">{{ product.description || '暂无描述' }}</p>
-          
+
           <div class="product-footer">
             <div class="product-price">
-              <span class="price-label">所需积分:</span>
+              <span class="price-label">所需能量:</span>
               <span class="price-value">{{ product.points_required }}</span>
             </div>
-            
             <div class="product-stock">
               库存: {{ product.stock }}
             </div>
           </div>
-          
+
           <el-button
             type="primary"
             :disabled="product.stock === 0 || userStore.userInfo.available_points < product.points_required"
             @click="handleExchange(product)"
             class="exchange-button"
           >
-            {{ product.stock === 0 ? '已售罄' : '立即兑换' }}
+            {{ product.stock === 0 ? '已售罄' : (product.is_blind_box ? '🎁 开盲盒' : '立即兑换') }}
           </el-button>
         </div>
       </el-card>
-      
+
       <el-empty v-if="!loading && products.length === 0" description="暂无商品" />
     </div>
-    
+
     <el-pagination
       v-if="total > 0"
       v-model:current-page="page"
@@ -75,16 +73,24 @@
 
     <el-dialog
       v-model="exchangeDialogVisible"
-      :title="selectedProduct ? `兑换 ${selectedProduct.name}` : '兑换商品'"
+      :title="selectedProduct ? (selectedProduct.is_blind_box ? `🎁 开启盲盒：${selectedProduct.name}` : `兑换 ${selectedProduct.name}`) : '兑换商品'"
       width="420px"
       destroy-on-close
     >
       <div v-if="selectedProduct" class="exchange-dialog-body">
+        <el-alert
+          v-if="selectedProduct.is_blind_box"
+          title="这是一个神秘盲盒，兑换后将随机获得一个惊喜奖品！"
+          type="warning"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 12px;"
+        />
         <p class="exchange-info">
-          可用积分：<span class="exchange-highlight">{{ userStore.userInfo.available_points }}</span>
+          可用能量：<span class="exchange-highlight">{{ userStore.userInfo.available_points }}</span>
         </p>
         <p class="exchange-info">
-          单件所需积分：<span class="exchange-highlight">{{ selectedProduct.points_required }}</span>
+          单件所需能量：<span class="exchange-highlight">{{ selectedProduct.points_required }}</span>
         </p>
         <p class="exchange-info">
           库存：<span class="exchange-highlight">{{ selectedProduct.stock }}</span>
@@ -162,8 +168,7 @@ const maxExchangeQuantity = computed(() => {
   const stockLimit = Number(product.stock) > 0 ? Number(product.stock) : 0
   const pointsRequired = Number(product.points_required) || 0
   const availablePoints = Number(userStore.userInfo.available_points) || 0
-  const pointsLimit =
-    pointsRequired > 0 ? Math.floor(availablePoints / pointsRequired) : stockLimit
+  const pointsLimit = pointsRequired > 0 ? Math.floor(availablePoints / pointsRequired) : stockLimit
   return Math.max(0, Math.min(stockLimit, pointsLimit))
 })
 
@@ -185,13 +190,11 @@ const confirmExchange = async () => {
     ElMessage.warning('当前不能兑换该商品')
     return
   }
-
   if (exchangeQuantity.value < 1) {
     ElMessage.warning('兑换数量至少为 1 件')
     exchangeQuantity.value = 1
     return
   }
-
   if (exchangeQuantity.value > maxExchangeQuantity.value) {
     ElMessage.warning(`最多可兑换 ${maxExchangeQuantity.value} 件`)
     exchangeQuantity.value = maxExchangeQuantity.value
@@ -200,11 +203,11 @@ const confirmExchange = async () => {
 
   exchangeSubmitting.value = true
   try {
-    await api.post('/exchanges', {
+    const res = await api.post('/exchanges', {
       product_id: selectedProduct.value.id,
       quantity: exchangeQuantity.value
     })
-    ElMessage.success('兑换成功')
+    ElMessage.success(res.data.message || '兑换成功')
     exchangeDialogVisible.value = false
     await userStore.getUserInfo()
     await loadProducts()
@@ -216,16 +219,12 @@ const confirmExchange = async () => {
 }
 
 watch(exchangeDialogVisible, (visible) => {
-  if (!visible) {
-    resetExchangeState()
-  }
+  if (!visible) resetExchangeState()
 })
 
 watch(maxExchangeQuantity, (newMax) => {
   if (!exchangeDialogVisible.value) return
-  if (newMax > 0 && exchangeQuantity.value > newMax) {
-    exchangeQuantity.value = newMax
-  }
+  if (newMax > 0 && exchangeQuantity.value > newMax) exchangeQuantity.value = newMax
 })
 
 onMounted(() => {
@@ -258,6 +257,15 @@ onMounted(() => {
 
 .product-card:hover {
   transform: translateY(-5px);
+}
+
+.blind-box-card {
+  background: linear-gradient(135deg, #fff9f0 0%, #fff3e0 100%);
+  border: 1px solid #ffd666 !important;
+}
+
+.blind-box-card:hover {
+  box-shadow: 0 4px 20px rgba(255, 170, 0, 0.25) !important;
 }
 
 .product-image {
@@ -300,6 +308,11 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+.product-tags {
+  margin-bottom: 6px;
+  min-height: 22px;
 }
 
 .product-name {

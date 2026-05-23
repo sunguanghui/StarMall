@@ -2,9 +2,9 @@
   <el-container class="main-container">
     <el-aside width="200px" class="sidebar">
       <div class="logo">
-        <h2>👍 大拇哥商城</h2>
+        <h2>🚀 星途补给站</h2>
       </div>
-      
+
       <el-menu
         :default-active="activeMenu"
         router
@@ -14,35 +14,41 @@
           <el-icon><House /></el-icon>
           <span>首页</span>
         </el-menu-item>
-        
+
         <el-menu-item index="/mall">
           <el-icon><Shop /></el-icon>
-          <span>积分商城</span>
+          <span>能量商城</span>
         </el-menu-item>
-        
+
         <el-menu-item index="/my-points">
           <el-icon><TrophyBase /></el-icon>
-          <span>我的积分</span>
+          <span>我的能量</span>
         </el-menu-item>
-        
+
         <el-menu-item index="/my-exchanges">
           <el-icon><ShoppingCart /></el-icon>
           <span>兑换记录</span>
         </el-menu-item>
-        
+
+        <el-menu-item index="/wishlist">
+          <el-icon><Star /></el-icon>
+          <span>星际心愿单</span>
+        </el-menu-item>
+
         <el-sub-menu index="/admin" v-if="userStore.isAdmin()">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>管理中心</span>
           </template>
           <el-menu-item index="/admin/users">用户管理</el-menu-item>
-          <el-menu-item index="/admin/thumbs">发放大拇哥</el-menu-item>
+          <el-menu-item index="/admin/thumbs">发放星辰币</el-menu-item>
           <el-menu-item index="/admin/products">商品管理</el-menu-item>
           <el-menu-item index="/admin/exchanges">兑换管理</el-menu-item>
+          <el-menu-item index="/admin/wishlists">心愿审核</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
-    
+
     <el-container>
       <el-header class="header">
         <div class="header-right">
@@ -58,7 +64,7 @@
           </el-dropdown>
         </div>
       </el-header>
-      
+
       <el-main class="main-content">
         <router-view />
       </el-main>
@@ -70,7 +76,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { House, Shop, TrophyBase, ShoppingCart, Setting } from '@element-plus/icons-vue'
+import { House, Shop, TrophyBase, ShoppingCart, Setting, Star } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
@@ -143,18 +149,15 @@ const handleCommand = (command) => {
   background: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* 子菜单容器背景 */
 .menu :deep(.el-menu--inline) {
   background: #000c17 !important;
 }
 
-/* 子菜单项样式 */
 .menu :deep(.el-menu--inline .el-menu-item) {
   background: #000c17 !important;
   color: rgba(255, 255, 255, 0.65);
 }
 
-/* 子菜单项悬停和激活状态 */
 .menu :deep(.el-menu--inline .el-menu-item:hover) {
   background: #1890ff !important;
   color: white;
@@ -190,4 +193,3 @@ const handleCommand = (command) => {
   background: #f0f2f5;
 }
 </style>
-

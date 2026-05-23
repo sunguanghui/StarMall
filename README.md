@@ -1,115 +1,299 @@
-# 大拇哥积分家庭奖励系统
+# 星途补给站
 
-本项目面向家长，为家长提供一个「大拇哥」奖励平台，让孩子通过完成任务、好行为或学习成果获取积分，再使用积分兑换实物或体验奖励。项目包含 Web 管理端与家庭端，可在家庭局域网或公网部署。
+> 面向家庭的星际主题亲子积分奖励系统。家长以「舰长」身份为孩子发放**星辰币**，孩子在**能量商城**兑换心仪奖励，通过**星际心愿单**表达心愿。系统支持局域网或公网私有化部署。
 
 ---
+
 ## 预览
-<img width="1780" height="919" alt="title" src="https://github.com/user-attachments/assets/3f063f02-b84f-47c9-a7b3-69794388c98f" />
 
-## ✨ 核心能力
-- **多家庭支持**：家长注册家庭账号后，可为每位孩子创建个人档案与积分账户。
-- **奖励发放**：家长可在手机或电脑端快速发放／扣减「大拇哥」积分，支持备注原因与查看流水。
-- **积分看板**：孩子登陆后可查看当前积分、累计奖励、最近表现等情况，增添激励。
-- **奖励商城**：家长配置奖励项目（如周末游玩、玩具、额外屏幕时间等），孩子可选择一次性兑换多件，只要积分足够。
-- **兑换审批**：可选的家长确认流程，避免孩子误操作或库存不足。
-- **上传与分享**：奖励项目支持图片展示，家长可上传商品或活动图片增强吸引力。
+<img width="1780" height="919" alt="preview" src="https://github.com/user-attachments/assets/3f063f02-b84f-47c9-a7b3-69794388c98f" />
 
-## 🧱 技术栈
-- **前端**：Vue 3、Vite、Pinia、Vue Router、Element Plus 组件库。
-- **后端**：Flask、SQLAlchemy、Flask-JWT-Extended、CORS。
-- **数据库**：MySQL（默认使用 `thumbs_mall` 库，可自定义）。
+---
 
-## 📁 目录结构
+## 功能特性
+
+### 积分机制
+- **星辰币发放**：单星辰币（+1 能量）、双星辰币（+5 能量），对应不同程度的鼓励
+- **红牌警告**：支持扣除能量（-1），用于行为纠正
+- **舰长寄语**：发放时可附加文字留言，在孩子流水记录中以提示条展示
+- **能量流水**：完整记录每一笔变动，负数以红色高亮显示
+
+### 能量商城
+- 商品列表浏览、关键词搜索、分页
+- **盲盒商品**：特殊金色卡片样式，兑换时后端随机抽取预设奖池中的奖品
+- 单次可兑换多件，系统自动校验积分和库存上限
+- 兑换记录支持取消并退回积分与库存
+
+### 星际心愿单
+- 孩子提交心愿（名称 + 期望能量值）
+- 管理员审核：批准后自动写入商品表（下架状态），拒绝则标记关闭
+- 心愿状态实时反馈：待审核 / 已批准 / 已拒绝
+
+### 数据可视化
+- 用户仪表板内置 **ECharts 折线图**，展示能量累计趋势
+- 管理员仪表板展示全局统计：总用户数、星辰币发放总量、兑换总量、在架商品数
+
+### 用户与权限
+- JWT 认证，Token 有效期 24 小时
+- 两级角色：`admin`（家长）/ `user`（孩子），前端路由守卫 + 后端 API 双重校验
+- 支持自主注册、修改密码、管理员重置任意用户密码
+
+### 商品管理
+- 商品 CRUD、上架/下架一键切换
+- 本地图片上传（支持 jpg / png / gif / webp，限 5MB）
+- 盲盒开关、排序权重配置
+
+---
+
+## 技术栈
+
+| 层级 | 技术 | 版本 |
+|------|------|------|
+| 前端框架 | Vue | 3.4 |
+| 构建工具 | Vite | 5.0 |
+| UI 组件库 | Element Plus | 2.5 |
+| 状态管理 | Pinia | 2.1 |
+| 路由 | Vue Router | 4.2 |
+| 图表 | ECharts | 6.1 |
+| HTTP 客户端 | Axios | 1.6 |
+| 后端框架 | Flask | 3.0 |
+| ORM | Flask-SQLAlchemy | 3.1 |
+| 认证 | Flask-JWT-Extended | 4.6 |
+| 跨域 | Flask-CORS | 4.0 |
+| 数据库 | MySQL | 8.0+ |
+
+---
+
+## 数据库结构
+
 ```
-.
-├─backend/                # Flask 后端服务
-│  ├─app.py               # 业务路由：积分发放、奖励配置、兑换记录等
-│  ├─config.py            # 配置加载（支持 .env）
-│  ├─models.py            # 用户、孩子、积分及兑换模型
-│  ├─API.md               # REST API 参考文档
-│  ├─requirements.txt     # Python 依赖
-│  ├─run.bat              # Windows 快速启动脚本（自动安装依赖/激活 venv）
-│  ├─reset_admin.py       # 家长管理员重置脚本
-│  ├─reset_passwords_simple.py # 批量重置家庭账号密码
-│  └─uploads/             # 奖励图片存储目录
-├─frontend/               # Vue 前端界面（家长和孩子共用）
-│  ├─src/                 # 页面、布局、状态、接口封装
-│  ├─package.json         # 前端依赖
-│  └─vite.config.js       # Vite 配置
-├─database/
-│  └─init.sql             # 初始化数据库结构与演示数据（示例家庭、奖励）
-├─DEPLOY.md               # 部署与上线指引
-└─README.md               # 项目说明（当前文件）
+users              用户表（管理员 / 普通用户）
+thumbs_records     星辰币流水记录（含扣分、舰长寄语）
+products           商品表（含盲盒标识）
+exchange_records   兑换记录（含盲盒抽奖结果）
+wishlists          星际心愿单
 ```
 
-## 🚀 快速部署指南
-以下流程以 Windows + CMD/PowerShell 为例；其他平台可按命令格式调整。
+外键关系：`thumbs_records` / `exchange_records` / `wishlists` → `users`；`exchange_records` → `products`
 
-### 1. 准备数据库
-1. 安装并启动 MySQL（>=8.0，或使用 MariaDB 兼容版本）。
-2. 创建数据库（默认 `thumbs_mall`，可在 `.env` 修改）。
-3. 执行 `database/init.sql` 导入表结构与示例数据（含演示家长/孩子账号）。
+---
 
-### 2. 配置后端服务
+## 目录结构
+
+```
+NumbMall/
+├── backend/
+│   ├── app.py                   # 全部 API 路由（认证、星辰币、商品、兑换、心愿单、统计）
+│   ├── models.py                # SQLAlchemy 数据模型（5 张表）
+│   ├── config.py                # 配置类，读取 .env
+│   ├── requirements.txt         # Python 依赖
+│   ├── run.bat                  # Windows 一键启动脚本
+│   ├── reset_admin.py           # 管理员密码重置脚本
+│   ├── reset_passwords_simple.py  # 批量重置测试账号密码
+│   ├── uploads/                 # 商品图片存储目录
+│   ├── Dockerfile
+│   └── API.md                   # REST 接口完整文档
+├── frontend/
+│   ├── src/
+│   │   ├── views/
+│   │   │   ├── Login.vue
+│   │   │   ├── Register.vue
+│   │   │   ├── Dashboard.vue    # 仪表板（含 ECharts 图表）
+│   │   │   ├── Mall.vue         # 能量商城（含盲盒）
+│   │   │   ├── MyPoints.vue     # 我的能量流水
+│   │   │   ├── MyExchanges.vue  # 兑换记录
+│   │   │   ├── Wishlist.vue     # 星际心愿单（用户端）
+│   │   │   ├── ChangePassword.vue
+│   │   │   └── admin/
+│   │   │       ├── Users.vue
+│   │   │       ├── Thumbs.vue   # 发放星辰币
+│   │   │       ├── Products.vue
+│   │   │       ├── Exchanges.vue
+│   │   │       └── Wishlists.vue  # 心愿审核（管理员端）
+│   │   ├── layouts/MainLayout.vue
+│   │   ├── router/index.js
+│   │   ├── stores/user.js
+│   │   └── utils/api.js         # Axios 封装与拦截器
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── nginx.conf
+│   └── Dockerfile
+├── database/
+│   └── init.sql                 # 一次性建表 + 测试数据（5 张表全量）
+├── docker-compose.yml
+├── docs/
+│   ├── DEPLOY.md
+│   ├── 项目架构说明.md
+│   ├── 功能清单.md
+│   └── ...
+└── README.md
+```
+
+---
+
+## 快速启动
+
+### 环境要求
+
+- Python 3.8+
+- Node.js 16+
+- MySQL 8.0+
+
+### 步骤一：初始化数据库
+
+```bash
+mysql -u root -p < database/init.sql
+```
+
+执行后自动创建 `thumbs_mall` 数据库、5 张数据表，并写入测试账号和演示数据。
+
+### 步骤二：配置并启动后端
+
 ```bash
 cd backend
-python -m venv venv          # 推荐使用虚拟环境
-venv\Scripts\activate        # 激活虚拟环境（Windows）
+
+# 创建并激活虚拟环境
+python -m venv venv
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # macOS / Linux
+
+# 安装依赖
 pip install -r requirements.txt
+
+# 配置环境变量
+cp .env.bak .env
 ```
 
-> **环境配置**：复制 `.env.bak` 到 `.env`，根据实际数据库、密钥、端口等信息调整。生产部署时务必替换默认密钥。
+编辑 `backend/.env`：
 
-启动后端服务（任选其一）：
+```ini
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=your_password
+MYSQL_DATABASE=thumbs_mall
+
+# 生产环境务必替换为随机长字符串
+SECRET_KEY=your-secret-key
+JWT_SECRET_KEY=your-jwt-secret-key
+```
+
+启动服务（默认监听 `0.0.0.0:5000`）：
+
 ```bash
-# 直接启动
 python app.py
-
-# 或使用脚本（自动处理依赖/环境）
-run.bat
+# Windows 也可双击 run.bat
 ```
-服务默认地址：`http://localhost:5000`。
 
-### 3. 启动前端界面
+### 步骤三：启动前端
+
 ```bash
 cd frontend
-npm install          # 首次安装依赖
-npm run dev          # 开发模式（默认端口 5173）
+npm install
+npm run dev        # 开发服务器，默认端口 5173
 ```
 
-访问 `http://localhost:5173` 打开前端界面。前端默认把 API 请求发送到 `http://localhost:5000/api`，如需修改可调整 `frontend/src/utils/api.js` 中的 `baseURL`。
+浏览器访问 `http://localhost:5173`
 
-### 4. 默认账号
-- **家长管理员**与**孩子体验账号**见 `database/init.sql`；可在首次登录后修改密码。
-- 提供 `backend/reset_admin.py` 和 `backend/reset_passwords_simple.py` 帮助找回忘记的账号信息。
+### 默认账号
 
-## 👪 使用场景建议
-- 家长可把日常家务、学习任务记录为积分奖励规则，定期发放「大拇哥」积分。
-- 孩子可在积分商城里兑换家庭时间、兴趣课程、玩具、外出活动等。
-- 可基于兑换记录与积分流水，和孩子一起复盘良好习惯的养成情况。
-
-## 🔧 常用命令速查
-| 操作 | 命令 |
-| ---- | ---- |
-| 激活虚拟环境 | `venv\Scripts\activate` |
-| 安装后端依赖 | `pip install -r requirements.txt` |
-| 启动后端服务 | `python app.py` 或 `run.bat` |
-| 启动前端 | `npm run dev` |
-| 前端打包 | `npm run build` |
-| 查看 API | 打开 `backend/API.md` |
-
-## 🧩 常见问题
-- **窗口闪退或文字乱码**：先在终端执行 `chcp 65001`，再运行 `run.bat`；脚本已采用 ASCII 文本避免解析失败。
-- **数据库连接失败**：确认 `.env` 中的数据库主机、端口、账号、密码，与实际部署一致。
-- **无法登录**：使用初始化 SQL 中的账号密码，或运行重置脚本获取新密码。
-- **依赖安装慢**：脚本默认使用清华镜像，可换为本地私有镜像或官方源。
-- **跨域请求报错**：后端已启用 CORS，若部署在不同域名，可在 `app.py` 中补充允许的来源。
-
-## 📚 参考资料
-- `backend/API.md`：详细的 REST 接口说明。
-- `DEPLOY.md`：线上部署、Nginx 反向代理、HTTPS 等方案。
-- `database/init.sql`：数据库结构及演示数据说明。
+| 用户名 | 密码 | 角色 | 说明 |
+|--------|------|------|------|
+| `admin` | `admin123` | 管理员 | 家长，拥有全部管理权限 |
+| `zhangsan` | `user123` | 普通用户 | 孩子，初始 100 能量 |
+| `lisi` | `user123` | 普通用户 | 孩子，初始 50 能量 |
 
 ---
 
-欢迎在实际使用中结合家庭需求调整奖励规则、前端文案或配色，让大拇哥积分成为亲子互动与习惯培养的好帮手！
+## Docker 部署
+
+```bash
+# 1. 修改 docker-compose.yml 中的 MYSQL_ROOT_PASSWORD
+# 2. 修改 backend/.env 中的 MYSQL_PASSWORD 与之保持一致
+# 3. 一键启动
+
+docker-compose up -d
+```
+
+| 服务 | 说明 | 端口 |
+|------|------|------|
+| `numbmall_db` | MySQL 8.0 数据库 | 3306 |
+| `numbmall_backend` | Flask + Gunicorn | 仅内部 5000 |
+| `numbmall_frontend` | Nginx 静态托管 + 反向代理 | **28000** |
+
+首次启动时 `database/init.sql` 会被自动执行，无需手动初始化数据库。
+
+访问地址：`http://localhost:28000`
+
+> **生产环境提示**：建议在 Nginx 前置层配置 HTTPS，并将 `SECRET_KEY` / `JWT_SECRET_KEY` 替换为足够随机的值。
+
+---
+
+## API 概览
+
+Base URL：`http://localhost:5000/api`
+
+所有需要认证的接口需在请求头携带：`Authorization: Bearer <token>`
+
+| 分类 | 方法 | 路径 | 认证 |
+|------|------|------|------|
+| **认证** | POST | `/auth/login` | — |
+| | POST | `/auth/register` | — |
+| | GET | `/auth/info` | ✓ |
+| | POST | `/auth/change-password` | ✓ |
+| **用户** | GET | `/users` | ✓ |
+| | POST | `/users` | ✓ 管理员 |
+| | PUT | `/users/{id}` | ✓ |
+| | POST | `/users/{id}/reset-password` | ✓ 管理员 |
+| **星辰币** | POST | `/thumbs` | ✓ 管理员 |
+| | GET | `/thumbs` | ✓ |
+| | GET | `/thumbs/stats` | ✓ |
+| **商品** | GET | `/products` | — |
+| | GET | `/products/{id}` | — |
+| | POST | `/products` | ✓ 管理员 |
+| | PUT | `/products/{id}` | ✓ 管理员 |
+| | POST | `/products/{id}/toggle-status` | ✓ 管理员 |
+| | DELETE | `/products/{id}` | ✓ 管理员 |
+| **兑换** | POST | `/exchanges` | ✓ |
+| | GET | `/exchanges` | ✓ |
+| | POST | `/exchanges/{id}/cancel` | ✓ |
+| **心愿单** | POST | `/wishlists` | ✓ |
+| | GET | `/wishlists` | ✓ |
+| | POST | `/wishlists/{id}/approve` | ✓ 管理员 |
+| | POST | `/wishlists/{id}/reject` | ✓ 管理员 |
+| **统计** | GET | `/stats/dashboard` | ✓ |
+| **文件** | POST | `/upload` | ✓ |
+| | GET | `/uploads/{filename}` | — |
+
+完整请求/响应示例见 [`backend/API.md`](backend/API.md)。
+
+---
+
+## 常见问题
+
+**Q：数据库连接失败**  
+检查 `backend/.env` 中的 `MYSQL_PASSWORD` 是否与 MySQL 实际密码一致，确认 MySQL 服务已启动。
+
+**Q：登录时提示用户名或密码错误**  
+使用 `backend/reset_admin.py` 重置管理员密码，或运行 `reset_passwords_simple.py` 批量重置所有测试账号。
+
+**Q：商品图片不显示**  
+确认后端服务正在运行（图片通过 `/api/uploads/` 接口提供），且 `backend/uploads/` 目录存在。
+
+**Q：前端请求 API 报跨域错误**  
+后端已全局启用 CORS。若部署在不同域名，在 `backend/app.py` 的 `CORS(app)` 处添加 `origins` 参数指定允许的来源。
+
+**Q：Docker 部署后界面空白**  
+确认前端 Vite 构建成功（`docker-compose logs frontend`），检查 `frontend/nginx.conf` 中 `proxy_pass` 指向的后端服务名是否为 `backend`。
+
+---
+
+## 参考文档
+
+| 文档 | 说明 |
+|------|------|
+| [`backend/API.md`](backend/API.md) | REST 接口完整参考 |
+| [`docs/DEPLOY.md`](docs/DEPLOY.md) | 生产环境部署、Nginx、HTTPS 配置 |
+| [`docs/项目架构说明.md`](docs/项目架构说明.md) | 系统架构、业务流程、扩展建议 |
+| [`docs/功能清单.md`](docs/功能清单.md) | 完整功能列表与技术指标 |
+| [`docs/测试清单.md`](docs/测试清单.md) | 功能测试用例清单 |

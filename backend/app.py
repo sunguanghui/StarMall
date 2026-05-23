@@ -6,7 +6,19 @@ from werkzeug.utils import secure_filename
 import os
 import uuid
 from config import Config
-from models import db, User, ThumbsRecord, Product, ExchangeRecord
+import random
+from models import db, User, ThumbsRecord, Product, ExchangeRecord, Wishlist
+
+# 盲盒奖池（可自定义扩展）
+BLIND_BOX_PRIZES = [
+    '神秘贴纸一套',
+    '小零食大礼包',
+    '定制书签',
+    '荧光笔套装',
+    '可爱橡皮擦',
+    '星际主题笔记本',
+    '迷你积木玩具',
+]
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -330,50 +342,60 @@ def reset_user_password(user_id):
 @app.route('/api/thumbs', methods=['POST'])
 @jwt_required()
 def give_thumbs():
-    """发放大拇哥"""
+    """发放星辰币 / 扣除能量"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
-    
+
     if current_user.role != 'admin':
-        return jsonify({'code': 403, 'message': '只有管理员可以发放大拇哥'}), 403
-    
+        return jsonify({'code': 403, 'message': '只有管理员可以操作'}), 403
+
     data = request.get_json()
     user_id = data.get('user_id')
-    thumb_type = data.get('thumb_type')  # 'single' or 'double'
+    thumb_type = data.get('thumb_type')  # 'single', 'double', 'deduction'
     reason = data.get('reason', '')
-    
+    parent_message = data.get('parent_message', '')
+
     if not user_id or not thumb_type:
         return jsonify({'code': 400, 'message': '参数不完整'}), 400
-    
-    if thumb_type not in ['single', 'double']:
-        return jsonify({'code': 400, 'message': '大拇哥类型错误'}), 400
-    
+
+    if thumb_type not in ['single', 'double', 'deduction']:
+        return jsonify({'code': 400, 'message': '奖励类型错误'}), 400
+
     user = User.query.get(user_id)
     if not user:
         return jsonify({'code': 404, 'message': '用户不存在'}), 404
-    
-    # 计算积分（单大拇哥=1分，双大拇哥=5分）
-    points = 1 if thumb_type == 'single' else 5
-    
-    # 创建记录
+
+    # 计算能量值
+    if thumb_type == 'single':
+        points = 1
+    elif thumb_type == 'double':
+        points = 5
+    else:  # deduction
+        points = -1
+
+    # 扣分时检查可用能量不能低于 0
+    if points < 0 and user.available_points + points < 0:
+        return jsonify({'code': 400, 'message': '用户可用能量不足，无法扣除'}), 400
+
     record = ThumbsRecord(
         user_id=user_id,
         thumb_type=thumb_type,
         points=points,
         reason=reason,
+        parent_message=parent_message if parent_message else None,
         given_by=current_user_id
     )
-    
-    # 更新用户积分
+
     user.total_points += points
     user.available_points += points
-    
+
     db.session.add(record)
     db.session.commit()
-    
+
+    type_label = {'single': '单星辰币', 'double': '双星辰币', 'deduction': '红牌警告'}
     return jsonify({
         'code': 200,
-        'message': f'成功发放{"单" if thumb_type == "single" else "双"}大拇哥',
+        'message': f'已发放{type_label[thumb_type]}',
         'data': record.to_dict()
     })
 
@@ -510,7 +532,8 @@ def create_product():
         points_required=points_required,
         stock=data.get('stock', 0),
         status=data.get('status', 'off_shelf'),
-        sort_order=data.get('sort_order', 0)
+        sort_order=data.get('sort_order', 0),
+        is_blind_box=data.get('is_blind_box', False)
     )
     
     db.session.add(product)
@@ -553,6 +576,8 @@ def update_product(product_id):
         product.status = data['status']
     if 'sort_order' in data:
         product.sort_order = data['sort_order']
+    if 'is_blind_box' in data:
+        product.is_blind_box = data['is_blind_box']
     
     db.session.commit()
     
@@ -645,14 +670,19 @@ def create_exchange():
     if user.available_points < points_needed:
         return jsonify({'code': 400, 'message': '积分不足'}), 400
     
-    # 创建兑换记录
+    # 创建兑换记录（盲盒随机抽奖）
+    blind_box_result = None
+    if product.is_blind_box:
+        blind_box_result = random.choice(BLIND_BOX_PRIZES)
+
     record = ExchangeRecord(
         user_id=current_user_id,
         product_id=product_id,
         product_name=product.name,
         points_spent=points_needed,
         quantity=quantity,
-        status='completed'
+        status='completed',
+        remark=f'盲盒抽奖结果：{blind_box_result}' if blind_box_result else None
     )
     
     # 扣除积分和库存
@@ -664,7 +694,7 @@ def create_exchange():
     
     return jsonify({
         'code': 200,
-        'message': '兑换成功',
+        'message': f'兑换成功！获得：{blind_box_result}' if blind_box_result else '兑换成功',
         'data': record.to_dict()
     })
 
@@ -781,6 +811,134 @@ def get_dashboard_stats():
                 'total_exchanges': ExchangeRecord.query.filter_by(user_id=current_user_id, status='completed').count()
             }
         })
+
+
+# ==================== 心愿单 API ====================
+
+@app.route('/api/wishlists', methods=['GET'])
+@jwt_required()
+def get_wishlists():
+    """获取心愿单列表"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    status = request.args.get('status')
+
+    query = Wishlist.query
+    if current_user.role != 'admin':
+        query = query.filter_by(user_id=current_user_id)
+    if status:
+        query = query.filter_by(status=status)
+
+    pagination = query.order_by(Wishlist.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    return jsonify({
+        'code': 200,
+        'data': {
+            'list': [w.to_dict() for w in pagination.items],
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page
+        }
+    })
+
+
+@app.route('/api/wishlists', methods=['POST'])
+@jwt_required()
+def create_wishlist():
+    """提交心愿单"""
+    current_user_id = get_jwt_identity()
+
+    data = request.get_json()
+    title = data.get('title', '').strip()
+    expected_points = data.get('expected_points', 0)
+
+    if not title:
+        return jsonify({'code': 400, 'message': '心愿名称不能为空'}), 400
+    if not isinstance(expected_points, int) or expected_points < 0:
+        return jsonify({'code': 400, 'message': '期望能量值无效'}), 400
+
+    wishlist = Wishlist(
+        user_id=current_user_id,
+        title=title,
+        expected_points=expected_points
+    )
+    db.session.add(wishlist)
+    db.session.commit()
+
+    return jsonify({
+        'code': 200,
+        'message': '心愿提交成功，等待舰长审核',
+        'data': wishlist.to_dict()
+    })
+
+
+@app.route('/api/wishlists/<int:wishlist_id>/approve', methods=['POST'])
+@jwt_required()
+def approve_wishlist(wishlist_id):
+    """管理员批准心愿，自动创建商品"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+
+    if current_user.role != 'admin':
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    wishlist = Wishlist.query.get(wishlist_id)
+    if not wishlist:
+        return jsonify({'code': 404, 'message': '心愿不存在'}), 404
+    if wishlist.status != 'pending':
+        return jsonify({'code': 400, 'message': '该心愿已处理'}), 400
+
+    # 自动写入商品表（下架状态，待管理员手动上架）
+    product = Product(
+        name=wishlist.title,
+        description=f'来自 {wishlist.user.real_name} 的星际心愿',
+        points_required=wishlist.expected_points,
+        stock=1,
+        status='off_shelf',
+        sort_order=0,
+        is_blind_box=False
+    )
+    wishlist.status = 'approved'
+
+    db.session.add(product)
+    db.session.commit()
+
+    return jsonify({
+        'code': 200,
+        'message': '心愿已批准，商品已创建（当前为下架状态，请前往商品管理上架）',
+        'data': wishlist.to_dict()
+    })
+
+
+@app.route('/api/wishlists/<int:wishlist_id>/reject', methods=['POST'])
+@jwt_required()
+def reject_wishlist(wishlist_id):
+    """管理员拒绝心愿"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+
+    if current_user.role != 'admin':
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    wishlist = Wishlist.query.get(wishlist_id)
+    if not wishlist:
+        return jsonify({'code': 404, 'message': '心愿不存在'}), 404
+    if wishlist.status != 'pending':
+        return jsonify({'code': 400, 'message': '该心愿已处理'}), 400
+
+    wishlist.status = 'rejected'
+    db.session.commit()
+
+    return jsonify({
+        'code': 200,
+        'message': '已拒绝该心愿',
+        'data': wishlist.to_dict()
+    })
 
 
 # ==================== 错误处理 ====================

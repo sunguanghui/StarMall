@@ -3,43 +3,59 @@
     <el-card class="stats-card">
       <div class="stats-grid">
         <div class="stat-item">
-          <div class="stat-label">总积分</div>
+          <div class="stat-label">总能量</div>
           <div class="stat-value">{{ stats.total_points || 0 }}</div>
         </div>
         <div class="stat-item">
-          <div class="stat-label">可用积分</div>
+          <div class="stat-label">可用能量</div>
           <div class="stat-value" style="color: #52c41a;">{{ stats.available_points || 0 }}</div>
         </div>
         <div class="stat-item">
-          <div class="stat-label">已使用</div>
+          <div class="stat-label">已消耗</div>
           <div class="stat-value" style="color: #faad14;">{{ stats.used_points || 0 }}</div>
         </div>
         <div class="stat-item">
-          <div class="stat-label">单大拇哥 👍</div>
+          <div class="stat-label">单星辰币 ⭐</div>
           <div class="stat-value">{{ stats.single_thumbs || 0 }}</div>
         </div>
         <div class="stat-item">
-          <div class="stat-label">双大拇哥 👍👍</div>
+          <div class="stat-label">双星辰币 🚀</div>
           <div class="stat-value">{{ stats.double_thumbs || 0 }}</div>
         </div>
       </div>
     </el-card>
-    
+
     <el-card class="table-card">
       <template #header>
         <div class="card-header">
-          <span>大拇哥获得记录</span>
+          <span>星辰币流水</span>
         </div>
       </template>
-      
+
       <el-table :data="records" style="width: 100%" v-loading="loading">
         <el-table-column prop="thumb_type_name" label="类型" width="150" />
-        <el-table-column prop="points" label="积分" width="100" />
-        <el-table-column prop="reason" label="获得原因" show-overflow-tooltip />
+        <el-table-column label="能量" width="100">
+          <template #default="{ row }">
+            <span :class="{ 'negative-points': row.points < 0 }">{{ row.points }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="获得/扣除原因" show-overflow-tooltip>
+          <template #default="{ row }">
+            <div>{{ row.reason }}</div>
+            <el-alert
+              v-if="row.parent_message"
+              :title="`舰长寄语：${row.parent_message}`"
+              type="info"
+              :closable="false"
+              show-icon
+              class="parent-message-alert"
+            />
+          </template>
+        </el-table-column>
         <el-table-column prop="given_by_name" label="发放人" width="120" />
-        <el-table-column prop="created_at" label="获得时间" width="180" />
+        <el-table-column prop="created_at" label="时间" width="180" />
       </el-table>
-      
+
       <el-pagination
         v-if="total > 0"
         v-model:current-page="page"
@@ -142,6 +158,17 @@ onMounted(() => {
   align-items: center;
 }
 
+.negative-points {
+  color: #f56c6c;
+  font-weight: bold;
+}
+
+.parent-message-alert {
+  margin-top: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
 .pagination {
   margin-top: 20px;
   display: flex;
@@ -160,6 +187,3 @@ onMounted(() => {
   }
 }
 </style>
-
-
-

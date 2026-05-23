@@ -10,7 +10,7 @@
           </el-button>
         </div>
       </template>
-      
+
       <el-form :inline="true" class="search-form">
         <el-form-item label="关键词">
           <el-input v-model="keyword" placeholder="商品名称" clearable @keyup.enter="loadProducts" />
@@ -25,11 +25,17 @@
           <el-button type="primary" @click="loadProducts">查询</el-button>
         </el-form-item>
       </el-form>
-      
+
       <el-table :data="products" style="width: 100%" v-loading="loading">
         <el-table-column prop="name" label="商品名称" show-overflow-tooltip />
-        <el-table-column prop="points_required" label="所需积分" width="100" />
+        <el-table-column prop="points_required" label="所需能量" width="100" />
         <el-table-column prop="stock" label="库存" width="80" />
+        <el-table-column label="盲盒" width="70">
+          <template #default="{ row }">
+            <el-tag v-if="row.is_blind_box" type="warning" size="small">🎁</el-tag>
+            <span v-else style="color: #ccc;">—</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="status_name" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 'on_shelf' ? 'success' : 'info'" size="small">
@@ -49,7 +55,7 @@
           </template>
         </el-table-column>
       </el-table>
-      
+
       <el-pagination
         v-if="total > 0"
         v-model:current-page="page"
@@ -60,13 +66,8 @@
         class="pagination"
       />
     </el-card>
-    
-    <!-- 新增/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="600px"
-    >
+
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="商品名称" prop="name">
           <el-input v-model="form.name" />
@@ -89,11 +90,14 @@
           </el-upload>
           <div class="upload-tip">支持 jpg、png、gif、webp 格式，大小不超过 5MB</div>
         </el-form-item>
-        <el-form-item label="所需积分" prop="points_required">
+        <el-form-item label="所需能量" prop="points_required">
           <el-input-number v-model="form.points_required" :min="1" />
         </el-form-item>
         <el-form-item label="库存数量" prop="stock">
           <el-input-number v-model="form.stock" :min="0" />
+        </el-form-item>
+        <el-form-item label="是否盲盒">
+          <el-switch v-model="form.is_blind_box" active-text="是" inactive-text="否" />
         </el-form-item>
         <el-form-item label="排序" prop="sort_order">
           <el-input-number v-model="form.sort_order" :min="0" />
@@ -105,7 +109,7 @@
           </el-radio-group>
         </el-form-item>
       </el-form>
-      
+
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="handleSubmit" :loading="submitting">确定</el-button>
@@ -145,24 +149,20 @@ const form = reactive({
   points_required: 10,
   stock: 0,
   sort_order: 0,
+  is_blind_box: false,
   status: 'off_shelf'
 })
 
 const rules = {
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
-  points_required: [{ required: true, message: '请输入所需积分', trigger: 'blur' }]
+  points_required: [{ required: true, message: '请输入所需能量', trigger: 'blur' }]
 }
 
 const loadProducts = async () => {
   loading.value = true
   try {
     const res = await api.get('/products', {
-      params: {
-        page: page.value,
-        per_page: pageSize.value,
-        keyword: keyword.value,
-        status: status.value
-      }
+      params: { page: page.value, per_page: pageSize.value, keyword: keyword.value, status: status.value }
     })
     products.value = res.data.list
     total.value = res.data.total
@@ -175,16 +175,7 @@ const loadProducts = async () => {
 
 const handleAdd = () => {
   dialogTitle.value = '新增商品'
-  Object.assign(form, {
-    id: null,
-    name: '',
-    description: '',
-    image_url: '',
-    points_required: 10,
-    stock: 0,
-    sort_order: 0,
-    status: 'off_shelf'
-  })
+  Object.assign(form, { id: null, name: '', description: '', image_url: '', points_required: 10, stock: 0, sort_order: 0, is_blind_box: false, status: 'off_shelf' })
   dialogVisible.value = true
 }
 
@@ -196,10 +187,8 @@ const handleEdit = (row) => {
 
 const handleSubmit = async () => {
   if (!formRef.value) return
-  
   await formRef.value.validate(async (valid) => {
     if (!valid) return
-    
     submitting.value = true
     try {
       if (form.id) {
@@ -248,15 +237,8 @@ const handleDelete = (row) => {
 const beforeUpload = (file) => {
   const isImage = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)
   const isLt5M = file.size / 1024 / 1024 < 5
-  
-  if (!isImage) {
-    ElMessage.error('只能上传 jpg、png、gif、webp 格式的图片！')
-    return false
-  }
-  if (!isLt5M) {
-    ElMessage.error('图片大小不能超过 5MB！')
-    return false
-  }
+  if (!isImage) { ElMessage.error('只能上传 jpg、png、gif、webp 格式的图片！'); return false }
+  if (!isLt5M) { ElMessage.error('图片大小不能超过 5MB！'); return false }
   return true
 }
 
@@ -338,4 +320,3 @@ onMounted(() => {
   justify-content: flex-end;
 }
 </style>
-

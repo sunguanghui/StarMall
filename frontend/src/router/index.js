@@ -72,6 +72,18 @@ const routes = [
         name: 'AdminExchanges',
         component: () => import('@/views/admin/Exchanges.vue'),
         meta: { title: '兑换管理', requireAdmin: true }
+      },
+      {
+        path: '/wishlist',
+        name: 'Wishlist',
+        component: () => import('@/views/Wishlist.vue'),
+        meta: { title: '星际心愿单' }
+      },
+      {
+        path: '/admin/wishlists',
+        name: 'AdminWishlists',
+        component: () => import('@/views/admin/Wishlists.vue'),
+        meta: { title: '心愿审核', requireAdmin: true }
       }
     ]
   }
@@ -87,7 +99,7 @@ router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   
   // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title} - 大拇哥积分商城` : '大拇哥积分商城'
+  document.title = to.meta.title ? `${to.meta.title} - 星途补给站` : '星途补给站'
   
   // 登录和注册页面直接放行
   if (to.path === '/login' || to.path === '/register') {
