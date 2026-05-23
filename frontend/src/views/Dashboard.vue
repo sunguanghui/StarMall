@@ -73,17 +73,19 @@
           <div class="table-wrapper">
             <el-table :data="recentThumbs" style="width: 100%" v-loading="thumbsLoading">
               <!-- 管理员视角：显示被操作对象 -->
-              <el-table-column v-if="isAdmin" prop="user_name" label="被操作人" width="90" show-overflow-tooltip />
-              <el-table-column prop="thumb_type_name" label="类型" width="90" />
-              <el-table-column label="能量" width="65">
+              <el-table-column v-if="isAdmin" prop="user_name" label="被操作人" width="75" show-overflow-tooltip />
+              <el-table-column prop="thumb_type_name" label="类型" width="75" show-overflow-tooltip />
+              <el-table-column label="能量" width="55">
                 <template #default="{ row }">
                   <span :class="{ 'negative-points': row.points < 0 }">{{ row.points }}</span>
                 </template>
               </el-table-column>
               <el-table-column prop="reason" label="原因" show-overflow-tooltip />
               <!-- 普通用户视角：显示操作人 -->
-              <el-table-column v-if="!isAdmin" prop="given_by_name" label="操作人" width="80" show-overflow-tooltip />
-              <el-table-column prop="created_at" label="时间" width="160" />
+              <el-table-column v-if="!isAdmin" prop="given_by_name" label="操作人" width="70" show-overflow-tooltip />
+              <el-table-column prop="created_at" label="时间" width="105">
+                <template #default="{ row }">{{ row.created_at?.slice(5, 16) }}</template>
+              </el-table-column>
             </el-table>
           </div>
         </el-card>
@@ -100,17 +102,19 @@
           <div class="table-wrapper">
             <el-table :data="recentExchanges" style="width: 100%" v-loading="exchangesLoading">
               <!-- 管理员视角：显示兑换人 -->
-              <el-table-column v-if="isAdmin" prop="user_name" label="兑换人" width="80" show-overflow-tooltip />
-              <el-table-column prop="product_name" label="商品" show-overflow-tooltip />
-              <el-table-column prop="points_spent" label="能量" width="65" />
-              <el-table-column prop="status_name" label="状态" width="70">
+              <el-table-column v-if="isAdmin" prop="user_name" label="兑换人" width="70" show-overflow-tooltip />
+              <el-table-column prop="product_name" label="商品" min-width="80" show-overflow-tooltip />
+              <el-table-column prop="points_spent" label="能量" width="55" />
+              <el-table-column prop="status_name" label="状态" width="65">
                 <template #default="{ row }">
                   <el-tag :type="getStatusType(row.status)" size="small">
                     {{ row.status_name }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="created_at" label="时间" width="160" />
+              <el-table-column prop="created_at" label="时间" width="105">
+                <template #default="{ row }">{{ row.created_at?.slice(5, 16) }}</template>
+              </el-table-column>
             </el-table>
           </div>
         </el-card>

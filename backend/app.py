@@ -202,7 +202,12 @@ def register():
 @app.route('/api/users', methods=['GET'])
 @jwt_required()
 def get_users():
-    """获取用户列表"""
+    """获取用户列表（仅管理员）"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'admin':
+        return jsonify({'code': 403, 'message': '无权限'}), 403
+
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
     keyword = request.args.get('keyword', '')
@@ -443,11 +448,16 @@ def get_thumbs_records():
 @jwt_required()
 def get_thumbs_stats():
     """获取星辰币统计"""
-    user_id = request.args.get('user_id', type=int)
-    
-    if not user_id:
-        current_user_id = get_jwt_identity()
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+
+    requested_user_id = request.args.get('user_id', type=int)
+
+    # 普通用户只能查自己；管理员可指定 user_id，不指定则查自己
+    if current_user.role != 'admin':
         user_id = current_user_id
+    else:
+        user_id = requested_user_id if requested_user_id else current_user_id
     
     user = User.query.get(user_id)
     if not user:
