@@ -46,7 +46,7 @@
         <rect x="70" y="137" width="20" height="3" rx="1.5" fill="#A0A0C8"/>
 
         <!-- 左臂 -->
-        <ellipse cx="40" cy="118" rx="10" ry="18" rx="10" fill="#F0F0FF" transform="rotate(-15 40 118)"/>
+        <ellipse cx="40" cy="118" rx="10" ry="18" fill="#F0F0FF" transform="rotate(-15 40 118)"/>
         <!-- 左手套 -->
         <ellipse cx="33" cy="132" rx="9" ry="8" fill="#D0D0E8"/>
 
