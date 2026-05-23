@@ -6,8 +6,8 @@ services:
     restart: unless-stopped
     environment:
       # 【重点修改这里】：必须和 .env 里配置的密码库名完全一致
-      MYSQL_ROOT_PASSWORD: Xy20190411    
-      MYSQL_DATABASE: thumbs_mall
+      MYSQL_ROOT_PASSWORD: Abc12345++    
+      MYSQL_DATABASE: star_mall
     volumes:
       - db_data:/var/lib/mysql
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql

@@ -1,9 +1,9 @@
 SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;
 
-CREATE DATABASE IF NOT EXISTS thumbs_mall CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS star_mall CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-USE thumbs_mall;
+USE star_mall;
 
 -- 用户表
 CREATE TABLE IF NOT EXISTS users (
