@@ -31,7 +31,7 @@ MYSQL_HOST=db
 MYSQL_PORT=3306
 MYSQL_USER=root
 MYSQL_PASSWORD=your_strong_password
-MYSQL_DATABASE=thumbs_mall
+MYSQL_DATABASE=star_mall
 
 # 生产环境务必替换为随机长字符串
 SECRET_KEY=your-secret-key
@@ -45,7 +45,7 @@ JWT_SECRET_KEY=your-jwt-secret-key
 ```yaml
 environment:
   MYSQL_ROOT_PASSWORD: your_strong_password
-  MYSQL_DATABASE: thumbs_mall
+  MYSQL_DATABASE: star_mall
 ```
 
 > `MYSQL_HOST` 在 Docker 环境中固定为 `db`（服务名），不能填 `localhost`。
@@ -66,19 +66,22 @@ docker-compose up -d
 
 | 服务名 | 说明 | 对外端口 |
 |--------|------|---------|
-| `starmall_db` | MySQL 8.0 | 3306（仅内部） |
-| `starmall_backend` | Flask + Gunicorn（2 workers） | **28001** |
+| `starmall_db` | MySQL 8.0（Asia/Shanghai 时区） | 仅内部 3306 |
+| `starmall_backend` | Flask + Gunicorn | **28001** |
 | `starmall_frontend` | Nginx 静态托管 + 反向代理 | **28000** |
 
 ---
 
 ## 默认账号
 
-| 用户名 | 密码 | 角色 |
-|--------|------|------|
-| `admin` | `admin123` | 管理员（舰长） |
-| `zhangsan` | `user123` | 普通用户 |
-| `lisi` | `user123` | 普通用户 |
+| 用户名 | 密码 | 角色 | 说明 |
+|--------|------|------|------|
+| `admin` | `admin123` | 超级管理员（舰长） | 拥有全部权限 |
+| `zhangsan` | `user123` | 普通用户 | 初始 100 能量 |
+| `lisi` | `user123` | 普通用户 | 初始 50 能量 |
+
+> **新增普通管理员（领航员）**：在用户管理中创建 `role=admin`、`is_super_admin=false` 的账号即可。  
+> **新增超级管理员**：创建管理员账号时勾选「超级管理员」开关（需以舰长身份登录操作）。
 
 ---
 
@@ -108,8 +111,6 @@ docker-compose down -v
 
 ## 重置密码
 
-### 重置管理员密码
-
 ```bash
 docker-compose exec backend python reset_admin.py
 ```
@@ -121,13 +122,13 @@ docker-compose exec backend python reset_admin.py
 ### 备份数据库
 
 ```bash
-docker-compose exec db mysqldump -u root -p thumbs_mall > backup_$(date +%Y%m%d_%H%M%S).sql
+docker-compose exec db mysqldump -u root -p star_mall > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 ### 恢复数据库
 
 ```bash
-cat backup.sql | docker-compose exec -T db mysql -u root -p thumbs_mall
+cat backup.sql | docker-compose exec -T db mysql -u root -p star_mall
 ```
 
 ---
@@ -135,8 +136,6 @@ cat backup.sql | docker-compose exec -T db mysql -u root -p thumbs_mall
 ## 生产环境配置
 
 ### HTTPS（推荐 Nginx 反向代理）
-
-在服务器前置一层 Nginx，将 443 流量代理到 `28000` 端口：
 
 ```nginx
 server {
@@ -179,14 +178,24 @@ docker-compose restart backend
 
 **图片上传成功但不显示**
 
-确认 backend 容器正常运行，`/api/uploads/` 路由由 Flask 提供静态文件服务。
+确认 backend 容器正常运行，`uploads/` 和 `uploads/avatars/` 目录存在且有写权限（Docker 挂载卷自动创建）。
 
 **前端界面空白**
-
-查看前端构建日志：
 
 ```bash
 docker-compose logs frontend
 ```
 
 确认 `frontend/nginx.conf` 中 `proxy_pass` 指向的后端服务名为 `backend`。
+
+**普通管理员看不到任务**
+
+普通管理员只能看到自己创建的任务。需由舰长创建任务并将其指定为审批人，或普通管理员自行在任务管理中新建任务。
+
+**时间显示与实际不符**
+
+所有服务已配置 `TZ: Asia/Shanghai`，MySQL 也已设置 `--default-time-zone='+08:00'`。如有问题请确认 Docker 宿主机时区设置。
+
+**跨域错误**
+
+后端已全局启用 CORS。若部署在不同域名，在 `backend/app.py` 的 `CORS(app)` 处添加 `origins` 参数指定允许的来源。
