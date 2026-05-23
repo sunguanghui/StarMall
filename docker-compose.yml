@@ -9,19 +9,22 @@ services:
       MYSQL_DATABASE: star_mall
       MYSQL_USER: starmall
       MYSQL_PASSWORD: Abc12345++
+      TZ: Asia/Shanghai
     volumes:
       - db_data:/var/lib/mysql
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "3306:3306"
     # 永久写入：强制指定容器的字符集
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --init-connect='SET NAMES utf8mb4;'
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --init-connect='SET NAMES utf8mb4;' --default-time-zone='+08:00'
 
   backend:
     build:
       context: ./backend
     container_name: starmall_backend
     restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
     # 之前在 yml 里写的 environment 可以删掉了，直接让它读取 backend/.env 文件更干净
     env_file:
       - ./backend/.env
@@ -37,8 +40,10 @@ services:
       context: ./frontend
     container_name: starmall_frontend
     restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
     ports:
-      - "28000:80"   
+      - "28000:80"
     depends_on:
       - backend
 
