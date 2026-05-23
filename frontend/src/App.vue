@@ -60,6 +60,22 @@ body {
   border-radius: 24px !important;
   overflow: hidden;
 }
+
+/* Mobile touch targets */
+@media (max-width: 768px) {
+  .el-button {
+    min-height: 44px;
+  }
+  .el-input__wrapper {
+    min-height: 44px;
+  }
+}
+
+/* Mobile drawer panel */
+.mobile-drawer .el-drawer__body {
+  padding: 0 !important;
+  overflow: hidden;
+}
 </style>
 
 

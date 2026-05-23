@@ -419,10 +419,25 @@ onMounted(() => {
   color: #aaa !important;
 }
 
-.pagination {
-  margin-top: 32px;
-  display: flex;
-  justify-content: center;
+@media (max-width: 768px) {
+  .products-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .exchange-button {
+    height: 52px !important;
+    font-size: 17px !important;
+  }
+
+  .product-name {
+    font-size: 17px;
+    white-space: normal;
+  }
+
+  .pagination {
+    margin-top: 20px;
+  }
 }
 
 .exchange-dialog-body {

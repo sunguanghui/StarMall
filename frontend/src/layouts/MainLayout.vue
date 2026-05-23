@@ -1,45 +1,18 @@
 <template>
   <el-container class="main-container">
-    <el-aside width="200px" class="sidebar">
+    <!-- 桌面侧边栏 -->
+    <el-aside width="200px" class="sidebar desktop-sidebar">
       <div class="logo">
         <h2>🚀 星途补给站</h2>
       </div>
-
-      <el-menu
-        :default-active="activeMenu"
-        router
-        class="menu"
-      >
-        <el-menu-item index="/dashboard">
-          <el-icon><House /></el-icon>
-          <span>首页</span>
-        </el-menu-item>
-
-        <el-menu-item index="/mall">
-          <el-icon><Shop /></el-icon>
-          <span>能量商城</span>
-        </el-menu-item>
-
-        <el-menu-item index="/my-points">
-          <el-icon><TrophyBase /></el-icon>
-          <span>我的能量</span>
-        </el-menu-item>
-
-        <el-menu-item index="/my-exchanges">
-          <el-icon><ShoppingCart /></el-icon>
-          <span>兑换记录</span>
-        </el-menu-item>
-
-        <el-menu-item index="/wishlist">
-          <el-icon><Star /></el-icon>
-          <span>星际心愿单</span>
-        </el-menu-item>
-
+      <el-menu :default-active="activeMenu" router class="menu">
+        <el-menu-item index="/dashboard"><el-icon><House /></el-icon><span>首页</span></el-menu-item>
+        <el-menu-item index="/mall"><el-icon><Shop /></el-icon><span>能量商城</span></el-menu-item>
+        <el-menu-item index="/my-points"><el-icon><TrophyBase /></el-icon><span>我的能量</span></el-menu-item>
+        <el-menu-item index="/my-exchanges"><el-icon><ShoppingCart /></el-icon><span>兑换记录</span></el-menu-item>
+        <el-menu-item index="/wishlist"><el-icon><Star /></el-icon><span>星际心愿单</span></el-menu-item>
         <el-sub-menu index="/admin" v-if="userStore.isAdmin()">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>管理中心</span>
-          </template>
+          <template #title><el-icon><Setting /></el-icon><span>管理中心</span></template>
           <el-menu-item index="/admin/users">用户管理</el-menu-item>
           <el-menu-item index="/admin/thumbs">发放星辰币</el-menu-item>
           <el-menu-item index="/admin/products">商品管理</el-menu-item>
@@ -51,6 +24,10 @@
 
     <el-container>
       <el-header class="header">
+        <!-- 移动端汉堡按钮 -->
+        <el-button class="hamburger-btn" @click="drawerVisible = true" text>
+          <el-icon :size="24"><Fold /></el-icon>
+        </el-button>
         <div class="header-right">
           <span class="username">{{ userStore.userInfo?.real_name }}</span>
           <el-dropdown @command="handleCommand">
@@ -70,18 +47,54 @@
       </el-main>
     </el-container>
   </el-container>
+
+  <!-- 移动端 Drawer 菜单 -->
+  <el-drawer
+    v-model="drawerVisible"
+    direction="ltr"
+    :with-header="false"
+    size="220px"
+    class="mobile-drawer"
+  >
+    <div class="drawer-inner">
+      <div class="drawer-logo">
+        <h2>🚀 星途补给站</h2>
+      </div>
+      <el-menu
+        :default-active="activeMenu"
+        router
+        class="menu drawer-menu"
+        @select="drawerVisible = false"
+      >
+        <el-menu-item index="/dashboard"><el-icon><House /></el-icon><span>首页</span></el-menu-item>
+        <el-menu-item index="/mall"><el-icon><Shop /></el-icon><span>能量商城</span></el-menu-item>
+        <el-menu-item index="/my-points"><el-icon><TrophyBase /></el-icon><span>我的能量</span></el-menu-item>
+        <el-menu-item index="/my-exchanges"><el-icon><ShoppingCart /></el-icon><span>兑换记录</span></el-menu-item>
+        <el-menu-item index="/wishlist"><el-icon><Star /></el-icon><span>星际心愿单</span></el-menu-item>
+        <el-sub-menu index="/admin" v-if="userStore.isAdmin()">
+          <template #title><el-icon><Setting /></el-icon><span>管理中心</span></template>
+          <el-menu-item index="/admin/users" @click="drawerVisible = false">用户管理</el-menu-item>
+          <el-menu-item index="/admin/thumbs" @click="drawerVisible = false">发放星辰币</el-menu-item>
+          <el-menu-item index="/admin/products" @click="drawerVisible = false">商品管理</el-menu-item>
+          <el-menu-item index="/admin/exchanges" @click="drawerVisible = false">兑换管理</el-menu-item>
+          <el-menu-item index="/admin/wishlists" @click="drawerVisible = false">心愿审核</el-menu-item>
+        </el-sub-menu>
+      </el-menu>
+    </div>
+  </el-drawer>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { House, Shop, TrophyBase, ShoppingCart, Setting, Star } from '@element-plus/icons-vue'
+import { House, Shop, TrophyBase, ShoppingCart, Setting, Star, Fold } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const drawerVisible = ref(false)
 
 const activeMenu = computed(() => route.path)
 
@@ -111,7 +124,8 @@ const handleCommand = (command) => {
   color: white;
 }
 
-.logo {
+.logo,
+.drawer-logo {
   height: 70px;
   display: flex;
   align-items: center;
@@ -121,7 +135,8 @@ const handleCommand = (command) => {
   backdrop-filter: blur(4px);
 }
 
-.logo h2 {
+.logo h2,
+.drawer-logo h2 {
   font-size: 17px;
   margin: 0;
   font-weight: 800;
@@ -195,15 +210,24 @@ const handleCommand = (command) => {
   background: white;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 0 20px;
+  justify-content: space-between;
+  padding: 0 16px;
   box-shadow: 0 4px 20px rgba(255, 107, 157, 0.1);
+}
+
+.hamburger-btn {
+  display: none;
+  color: #7B68EE !important;
+  padding: 8px !important;
+  min-height: 44px !important;
+  min-width: 44px !important;
 }
 
 .header-right {
   display: flex;
   align-items: center;
   gap: 15px;
+  margin-left: auto;
 }
 
 .username {
@@ -215,5 +239,43 @@ const handleCommand = (command) => {
 .main-content {
   padding: 24px;
   background: #FFF8F0;
+}
+
+/* Drawer 内部样式 */
+.drawer-inner {
+  height: 100%;
+  background: linear-gradient(180deg, #7B68EE 0%, #9B59B6 50%, #8E44AD 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-menu {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* 移动端媒体查询 */
+@media (max-width: 768px) {
+  .desktop-sidebar {
+    display: none !important;
+  }
+
+  .hamburger-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+
+  .menu :deep(.el-menu-item) {
+    height: 52px;
+  }
+
+  .menu :deep(.el-sub-menu__title) {
+    height: 52px;
+  }
 }
 </style>

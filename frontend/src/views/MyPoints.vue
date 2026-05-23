@@ -8,11 +8,11 @@
         </div>
         <div class="stat-item">
           <div class="stat-label">可用能量</div>
-          <div class="stat-value" style="color: #52c41a;">{{ stats.available_points || 0 }}</div>
+          <div class="stat-value" style="color: #4ECDC4;">{{ stats.available_points || 0 }}</div>
         </div>
         <div class="stat-item">
           <div class="stat-label">已消耗</div>
-          <div class="stat-value" style="color: #faad14;">{{ stats.used_points || 0 }}</div>
+          <div class="stat-value" style="color: #F7971E;">{{ stats.used_points || 0 }}</div>
         </div>
         <div class="stat-item">
           <div class="stat-label">单星辰币 ⭐</div>
@@ -32,36 +32,65 @@
         </div>
       </template>
 
-      <el-table :data="records" style="width: 100%" v-loading="loading">
-        <el-table-column prop="thumb_type_name" label="类型" width="150" />
-        <el-table-column label="能量" width="100">
-          <template #default="{ row }">
-            <span :class="{ 'negative-points': row.points < 0 }">{{ row.points }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="获得/扣除原因" show-overflow-tooltip>
-          <template #default="{ row }">
-            <div>{{ row.reason }}</div>
-            <el-alert
-              v-if="row.parent_message"
-              :title="`舰长寄语：${row.parent_message}`"
-              type="info"
-              :closable="false"
-              show-icon
-              class="parent-message-alert"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column prop="given_by_name" label="发放人" width="120" />
-        <el-table-column prop="created_at" label="时间" width="180" />
-      </el-table>
+      <!-- 桌面表格 -->
+      <div v-if="!isMobile" class="table-wrapper">
+        <el-table :data="records" style="width: 100%" v-loading="loading">
+          <el-table-column prop="thumb_type_name" label="类型" width="150" />
+          <el-table-column label="能量" width="100">
+            <template #default="{ row }">
+              <span :class="{ 'negative-points': row.points < 0 }">{{ row.points }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="获得/扣除原因" show-overflow-tooltip>
+            <template #default="{ row }">
+              <div>{{ row.reason }}</div>
+              <el-alert
+                v-if="row.parent_message"
+                :title="`舰长寄语：${row.parent_message}`"
+                type="info"
+                :closable="false"
+                show-icon
+                class="parent-message-alert"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column prop="given_by_name" label="发放人" width="120" />
+          <el-table-column prop="created_at" label="时间" width="180" />
+        </el-table>
+      </div>
+
+      <!-- 移动端卡片列表 -->
+      <div v-else class="mobile-records" v-loading="loading">
+        <div v-for="(row, index) in records" :key="index" class="record-card">
+          <div class="record-card-top">
+            <span class="record-type">{{ row.thumb_type_name }}</span>
+            <span :class="['record-points', { 'negative-points': row.points < 0 }]">
+              {{ row.points > 0 ? '+' : '' }}{{ row.points }}
+            </span>
+          </div>
+          <div class="record-reason">{{ row.reason }}</div>
+          <el-alert
+            v-if="row.parent_message"
+            :title="`舰长寄语：${row.parent_message}`"
+            type="info"
+            :closable="false"
+            show-icon
+            class="parent-message-alert"
+          />
+          <div class="record-meta">
+            <span>{{ row.given_by_name }}</span>
+            <span>{{ row.created_at }}</span>
+          </div>
+        </div>
+        <el-empty v-if="!loading && records.length === 0" description="暂无记录" />
+      </div>
 
       <el-pagination
         v-if="total > 0"
         v-model:current-page="page"
         v-model:page-size="pageSize"
         :total="total"
-        layout="total, prev, pager, next, jumper"
+        :layout="isMobile ? 'prev, pager, next' : 'total, prev, pager, next, jumper'"
         @current-change="loadRecords"
         class="pagination"
       />
@@ -70,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 
@@ -82,6 +111,9 @@ const loading = ref(false)
 const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
+const isMobile = ref(window.innerWidth <= 768)
+
+const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
 
 const loadStats = async () => {
   try {
@@ -114,6 +146,11 @@ const loadRecords = async () => {
 onMounted(() => {
   loadStats()
   loadRecords()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
@@ -145,17 +182,24 @@ onMounted(() => {
 .stat-value {
   font-size: 32px;
   font-weight: bold;
-  color: #1890ff;
+  color: #FF6B9D;
 }
 
 .table-card {
   margin-bottom: 20px;
 }
 
+.table-wrapper {
+  overflow-x: auto;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #444;
 }
 
 .negative-points {
@@ -175,6 +219,56 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
+/* 移动端卡片样式 */
+.mobile-records {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 80px;
+}
+
+.record-card {
+  background: linear-gradient(135deg, #FFF0F8 0%, #FFF8F0 100%);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(255, 107, 157, 0.08);
+}
+
+.record-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.record-type {
+  font-size: 15px;
+  font-weight: 700;
+  color: #555;
+}
+
+.record-points {
+  font-size: 22px;
+  font-weight: 900;
+  color: #FF6B9D;
+}
+
+.record-reason {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.record-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 4px;
+}
+
 @media (max-width: 1200px) {
   .stats-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -183,7 +277,20 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  .pagination {
+    justify-content: center;
   }
 }
 </style>
