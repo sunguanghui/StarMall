@@ -7,7 +7,7 @@ import os
 import uuid
 from config import Config
 import random
-from models import db, User, ThumbsRecord, Product, ExchangeRecord, Wishlist
+from models import db, User, ThumbsRecord, Product, ExchangeRecord, Wishlist, Task, TaskLog
 
 # 盲盒奖池（可自定义扩展）
 BLIND_BOX_PRIZES = [
@@ -82,6 +82,60 @@ def upload_file():
 def get_upload_file(filename):
     """获取上传的文件"""
     return send_from_directory(UPLOAD_FOLDER, filename)
+
+
+@app.route('/api/upload/avatar', methods=['POST'])
+@jwt_required()
+def upload_avatar():
+    """上传头像图片"""
+    if 'file' not in request.files:
+        return jsonify({'code': 400, 'message': '没有文件'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'code': 400, 'message': '没有选择文件'}), 400
+
+    if file and allowed_file(file.filename):
+        avatar_folder = os.path.join(UPLOAD_FOLDER, 'avatars')
+        if not os.path.exists(avatar_folder):
+            os.makedirs(avatar_folder)
+
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        filepath = os.path.join(avatar_folder, filename)
+        file.save(filepath)
+
+        file_url = f"/api/uploads/avatars/{filename}"
+        return jsonify({'code': 200, 'message': '上传成功', 'data': {'url': file_url}})
+
+    return jsonify({'code': 400, 'message': '不支持的文件类型'}), 400
+
+
+@app.route('/api/uploads/avatars/<filename>')
+def get_avatar_file(filename):
+    """获取头像文件"""
+    avatar_folder = os.path.join(UPLOAD_FOLDER, 'avatars')
+    return send_from_directory(avatar_folder, filename)
+
+
+@app.route('/api/auth/avatar', methods=['POST'])
+@jwt_required()
+def update_avatar():
+    """更新当前用户头像"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if not user:
+        return jsonify({'code': 404, 'message': '用户不存在'}), 404
+
+    data = request.get_json()
+    avatar = data.get('avatar')
+    if not avatar:
+        return jsonify({'code': 400, 'message': '头像不能为空'}), 400
+
+    user.avatar = avatar
+    db.session.commit()
+
+    return jsonify({'code': 200, 'message': '头像更新成功', 'data': user.to_dict()})
 
 
 # ==================== 认证相关 API ====================
@@ -262,7 +316,8 @@ def create_user():
         real_name=real_name,
         email=data.get('email'),
         phone=data.get('phone'),
-        role=data.get('role', 'user')
+        role=data.get('role', 'user'),
+        is_super_admin=data.get('is_super_admin', False) if current_user.is_super_admin else False
     )
     user.set_password(password)
     
@@ -292,16 +347,21 @@ def update_user(user_id):
         return jsonify({'code': 404, 'message': '用户不存在'}), 404
     
     data = request.get_json()
-    
+
     if 'real_name' in data:
         user.real_name = data['real_name']
     if 'email' in data:
         user.email = data['email']
     if 'phone' in data:
         user.phone = data['phone']
+    if 'avatar' in data:
+        user.avatar = data['avatar']
     if 'password' in data and data['password']:
         user.set_password(data['password'])
-    
+    # 只有超级管理员可以修改 is_super_admin
+    if 'is_super_admin' in data and current_user.is_super_admin:
+        user.is_super_admin = data['is_super_admin']
+
     db.session.commit()
     
     return jsonify({
@@ -375,12 +435,23 @@ def give_thumbs():
         points = 1
     elif thumb_type == 'double':
         points = 5
-    else:  # deduction
-        points = -1
+    else:  # deduction：允许前端传入自定义负整数
+        custom_points = data.get('points')
+        if custom_points is not None:
+            if not isinstance(custom_points, int) or custom_points >= 0:
+                return jsonify({'code': 400, 'message': '自定义扣分值必须为负整数'}), 400
+            points = custom_points
+        else:
+            points = -1
 
-    # 扣分时检查可用能量不能低于 0
-    if points < 0 and user.available_points + points < 0:
-        return jsonify({'code': 400, 'message': '用户可用能量不足，无法扣除'}), 400
+    # 扣分时：扣到 0 为止，不拒绝操作
+    if points < 0:
+        actual_deduction = max(points, -user.available_points)
+        user.available_points = max(0, user.available_points + points)
+        user.total_points += actual_deduction
+    else:
+        user.total_points += points
+        user.available_points += points
 
     record = ThumbsRecord(
         user_id=user_id,
@@ -388,11 +459,9 @@ def give_thumbs():
         points=points,
         reason=reason,
         parent_message=parent_message if parent_message else None,
-        given_by=current_user_id
+        given_by=current_user_id,
+        admin_id=current_user_id
     )
-
-    user.total_points += points
-    user.available_points += points
 
     db.session.add(record)
     db.session.commit()
@@ -961,6 +1030,288 @@ def reject_wishlist(wishlist_id):
         'message': '已拒绝该心愿',
         'data': wishlist.to_dict()
     })
+
+
+# ==================== 任务大厅 API ====================
+
+@app.route('/api/tasks', methods=['GET'])
+@jwt_required()
+def get_tasks():
+    """获取任务列表（附带今日提交状态）"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    include_inactive = request.args.get('include_inactive', 'false') == 'true'
+
+    query = Task.query
+    if not include_inactive:
+        query = query.filter_by(is_active=True)
+
+    # 普通管理员只能看自己创建的任务
+    if current_user.role == 'admin' and not current_user.is_super_admin:
+        query = query.filter_by(created_by=current_user_id)
+
+    tasks = query.order_by(Task.type.asc(), Task.id.asc()).all()
+
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = datetime.now().replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    result = []
+    for task in tasks:
+        d = task.to_dict()
+        today_log = TaskLog.query.filter(
+            TaskLog.user_id == current_user_id,
+            TaskLog.task_id == task.id,
+            TaskLog.created_at >= today_start,
+            TaskLog.created_at <= today_end
+        ).first()
+        d['today_log'] = today_log.to_dict() if today_log else None
+        result.append(d)
+
+    return jsonify({'code': 200, 'data': result})
+
+
+@app.route('/api/admins', methods=['GET'])
+@jwt_required()
+def get_admins():
+    """获取管理员列表（用于前端选择审批人）"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'admin':
+        return jsonify({'code': 403, 'message': '无权限'}), 403
+
+    admins = User.query.filter_by(role='admin').order_by(User.id.asc()).all()
+    return jsonify({'code': 200, 'data': [{'id': u.id, 'real_name': u.real_name, 'is_super_admin': u.is_super_admin} for u in admins]})
+
+
+@app.route('/api/tasks', methods=['POST'])
+@jwt_required()
+def create_task():
+    """管理员创建任务"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'admin':
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    data = request.get_json()
+    title = data.get('title', '').strip()
+    if not title:
+        return jsonify({'code': 400, 'message': '任务名称不能为空'}), 400
+
+    if current_user.is_super_admin:
+        reviewer_id = data.get('reviewer_id') or None
+        created_by = current_user_id
+    else:
+        # 普通管理员强制自己为创建者和审批人
+        reviewer_id = current_user_id
+        created_by = current_user_id
+
+    task = Task(
+        title=title,
+        type=data.get('type', 'daily'),
+        energy_reward=data.get('energy_reward', 1),
+        is_active=data.get('is_active', True),
+        reviewer_id=reviewer_id,
+        created_by=created_by
+    )
+    db.session.add(task)
+    db.session.commit()
+    return jsonify({'code': 200, 'message': '创建成功', 'data': task.to_dict()})
+
+
+@app.route('/api/tasks/<int:task_id>', methods=['PUT'])
+@jwt_required()
+def update_task(task_id):
+    """管理员编辑任务"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'admin':
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    task = Task.query.get(task_id)
+    if not task:
+        return jsonify({'code': 404, 'message': '任务不存在'}), 404
+
+    # 普通管理员只能编辑自己创建的任务
+    if not current_user.is_super_admin and task.created_by != int(current_user_id):
+        return jsonify({'code': 403, 'message': '只能编辑自己创建的任务'}), 403
+
+    data = request.get_json()
+    if 'title' in data:
+        task.title = data['title'].strip()
+    if 'type' in data:
+        task.type = data['type']
+    if 'energy_reward' in data:
+        task.energy_reward = data['energy_reward']
+    if 'is_active' in data:
+        task.is_active = data['is_active']
+    if 'reviewer_id' in data and current_user.is_super_admin:
+        task.reviewer_id = data['reviewer_id'] or None
+
+    db.session.commit()
+    return jsonify({'code': 200, 'message': '更新成功', 'data': task.to_dict()})
+
+
+@app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
+@jwt_required()
+def delete_task(task_id):
+    """管理员删除/停用任务"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'admin':
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    task = Task.query.get(task_id)
+    if not task:
+        return jsonify({'code': 404, 'message': '任务不存在'}), 404
+
+    # 普通管理员只能停用自己创建的任务
+    if not current_user.is_super_admin and task.created_by != int(current_user_id):
+        return jsonify({'code': 403, 'message': '只能停用自己创建的任务'}), 403
+
+    task.is_active = False
+    db.session.commit()
+    return jsonify({'code': 200, 'message': '任务已停用'})
+
+
+@app.route('/api/task-logs', methods=['POST'])
+@jwt_required()
+def submit_task_log():
+    """用户提交任务打卡"""
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+    task_id = data.get('task_id')
+
+    if not task_id:
+        return jsonify({'code': 400, 'message': '任务ID不能为空'}), 400
+
+    task = Task.query.get(task_id)
+    if not task or not task.is_active:
+        return jsonify({'code': 404, 'message': '任务不存在或已停用'}), 404
+
+    # daily 任务每天只能提交一次
+    if task.type == 'daily':
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = datetime.now().replace(hour=23, minute=59, second=59, microsecond=999999)
+        existing = TaskLog.query.filter(
+            TaskLog.user_id == current_user_id,
+            TaskLog.task_id == task_id,
+            TaskLog.created_at >= today_start,
+            TaskLog.created_at <= today_end
+        ).first()
+        if existing:
+            return jsonify({'code': 400, 'message': '今天已提交过该任务，明天再来吧'}), 400
+
+    log = TaskLog(user_id=current_user_id, task_id=task_id, status='pending')
+    db.session.add(log)
+    db.session.commit()
+    return jsonify({'code': 200, 'message': '打卡成功，等待舰长审核', 'data': log.to_dict()})
+
+
+@app.route('/api/task-logs', methods=['GET'])
+@jwt_required()
+def get_task_logs():
+    """获取任务打卡记录"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    status = request.args.get('status')
+    user_id = request.args.get('user_id', type=int)
+
+    query = TaskLog.query
+    if current_user.role != 'admin':
+        query = query.filter_by(user_id=current_user_id)
+    else:
+        if not current_user.is_super_admin:
+            # 普通管理员只看 reviewer_id=自己 或 reviewer_id=NULL 的任务打卡
+            query = query.join(Task, TaskLog.task_id == Task.id).filter(
+                db.or_(Task.reviewer_id == int(current_user_id), Task.reviewer_id == None)
+            )
+        if user_id:
+            query = query.filter(TaskLog.user_id == user_id)
+
+    if status:
+        query = query.filter(TaskLog.status == status)
+
+    pagination = query.order_by(TaskLog.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    return jsonify({
+        'code': 200,
+        'data': {
+            'list': [log.to_dict() for log in pagination.items],
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page
+        }
+    })
+
+
+@app.route('/api/task-logs/<int:log_id>/approve', methods=['POST'])
+@jwt_required()
+def approve_task_log(log_id):
+    """管理员审批通过，自动发放能量"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'admin':
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    log = TaskLog.query.get(log_id)
+    if not log:
+        return jsonify({'code': 404, 'message': '记录不存在'}), 404
+    if log.status != 'pending':
+        return jsonify({'code': 400, 'message': '该记录已处理'}), 400
+
+    task = Task.query.get(log.task_id)
+    # 普通管理员只能审批自己负责的任务
+    if not current_user.is_super_admin:
+        if task.reviewer_id is not None and task.reviewer_id != int(current_user_id):
+            return jsonify({'code': 403, 'message': '该任务不在您的审批范围内'}), 403
+
+    user = User.query.get(log.user_id)
+
+    log.status = 'approved'
+    user.total_points += task.energy_reward
+    user.available_points += task.energy_reward
+
+    thumb_record = ThumbsRecord(
+        user_id=log.user_id,
+        thumb_type='single' if task.energy_reward <= 1 else 'double',
+        points=task.energy_reward,
+        reason=f'完成任务：{task.title}',
+        given_by=current_user_id,
+        admin_id=current_user_id
+    )
+    db.session.add(thumb_record)
+    db.session.commit()
+
+    return jsonify({'code': 200, 'message': f'已批准，已发放 {task.energy_reward} 点能量', 'data': log.to_dict()})
+
+
+@app.route('/api/task-logs/<int:log_id>/reject', methods=['POST'])
+@jwt_required()
+def reject_task_log(log_id):
+    """管理员驳回打卡"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'admin':
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    log = TaskLog.query.get(log_id)
+    if not log:
+        return jsonify({'code': 404, 'message': '记录不存在'}), 404
+    if log.status != 'pending':
+        return jsonify({'code': 400, 'message': '该记录已处理'}), 400
+
+    task = Task.query.get(log.task_id)
+    if not current_user.is_super_admin:
+        if task.reviewer_id is not None and task.reviewer_id != int(current_user_id):
+            return jsonify({'code': 403, 'message': '该任务不在您的审批范围内'}), 403
+
+    log.status = 'rejected'
+    db.session.commit()
+    return jsonify({'code': 200, 'message': '已驳回', 'data': log.to_dict()})
 
 
 # ==================== 错误处理 ====================

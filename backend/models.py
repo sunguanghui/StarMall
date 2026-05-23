@@ -14,7 +14,9 @@ class User(db.Model):
     real_name = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(100))
     phone = db.Column(db.String(20))
+    avatar = db.Column(db.String(255), default=None)
     role = db.Column(db.Enum('admin', 'user'), default='user')
+    is_super_admin = db.Column(db.Boolean, nullable=False, default=False)
     total_points = db.Column(db.Integer, default=0)
     available_points = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -37,7 +39,9 @@ class User(db.Model):
             'real_name': self.real_name,
             'email': self.email,
             'phone': self.phone,
+            'avatar': self.avatar,
             'role': self.role,
+            'is_super_admin': self.is_super_admin,
             'total_points': self.total_points,
             'available_points': self.available_points,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
@@ -55,9 +59,11 @@ class ThumbsRecord(db.Model):
     reason = db.Column(db.String(255))
     parent_message = db.Column(db.Text)
     given_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     giver = db.relationship('User', foreign_keys=[given_by])
+    admin = db.relationship('User', foreign_keys=[admin_id])
 
     def to_dict(self):
         type_name_map = {
@@ -65,6 +71,11 @@ class ThumbsRecord(db.Model):
             'double': '双星辰币 🚀',
             'deduction': '红牌警告 ⚠️'
         }
+        admin_name = None
+        if self.admin:
+            admin_name = self.admin.real_name
+        elif self.giver:
+            admin_name = self.giver.real_name
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -76,6 +87,8 @@ class ThumbsRecord(db.Model):
             'parent_message': self.parent_message,
             'given_by': self.given_by,
             'given_by_name': self.giver.real_name if self.giver else None,
+            'admin_id': self.admin_id,
+            'admin_name': admin_name,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
 
@@ -171,4 +184,70 @@ class Wishlist(db.Model):
             'status_name': status_name_map.get(self.status, self.status),
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
             'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
+        }
+
+
+class Task(db.Model):
+    """任务模板"""
+    __tablename__ = 'tasks'
+
+    id            = db.Column(db.Integer, primary_key=True)
+    title         = db.Column(db.String(100), nullable=False)
+    type          = db.Column(db.Enum('daily', 'milestone'), nullable=False, default='daily')
+    energy_reward = db.Column(db.Integer, nullable=False, default=1)
+    is_active     = db.Column(db.Boolean, nullable=False, default=True)
+    reviewer_id   = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_by    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at    = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    logs     = db.relationship('TaskLog', backref='task', lazy='dynamic')
+    reviewer = db.relationship('User', foreign_keys=[reviewer_id])
+    creator  = db.relationship('User', foreign_keys=[created_by])
+
+    def to_dict(self):
+        return {
+            'id':              self.id,
+            'title':           self.title,
+            'type':            self.type,
+            'type_name':       '每日日常' if self.type == 'daily' else '阶段里程碑',
+            'energy_reward':   self.energy_reward,
+            'is_active':       self.is_active,
+            'reviewer_id':     self.reviewer_id,
+            'reviewer_name':   self.reviewer.real_name if self.reviewer else None,
+            'created_by':      self.created_by,
+            'created_by_name': self.creator.real_name if self.creator else None,
+            'created_at':      self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+        }
+
+
+class TaskLog(db.Model):
+    """任务执行记录"""
+    __tablename__ = 'task_logs'
+
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    task_id    = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
+    status     = db.Column(db.Enum('pending', 'approved', 'rejected'), nullable=False, default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('task_logs', lazy='dynamic'))
+
+    def to_dict(self):
+        status_map = {'pending': '待审核', 'approved': '已批准', 'rejected': '已驳回'}
+        return {
+            'id':               self.id,
+            'user_id':          self.user_id,
+            'user_name':        self.user.real_name if self.user else None,
+            'task_id':          self.task_id,
+            'task_title':       self.task.title if self.task else None,
+            'task_type':        self.task.type if self.task else None,
+            'energy_reward':    self.task.energy_reward if self.task else 0,
+            'reviewer_id':      self.task.reviewer_id if self.task else None,
+            'reviewer_name':    self.task.reviewer.real_name if self.task and self.task.reviewer else None,
+            'status':           self.status,
+            'status_name':      status_map.get(self.status, self.status),
+            'created_at':       self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+            'updated_at':       self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None,
         }

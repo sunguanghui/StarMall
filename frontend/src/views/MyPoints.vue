@@ -36,9 +36,11 @@
       <div v-if="!isMobile" class="table-wrapper">
         <el-table :data="records" style="width: 100%" v-loading="loading">
           <el-table-column prop="thumb_type_name" label="类型" width="150" />
-          <el-table-column label="能量" width="100">
+          <el-table-column label="能量" width="120">
             <template #default="{ row }">
-              <span :class="{ 'negative-points': row.points < 0 }">{{ row.points }}</span>
+              <span :class="pointsClass(row.points)">
+                <span v-if="row.points <= -5" class="big-punish-icon">☄️</span>{{ row.points }}
+              </span>
             </template>
           </el-table-column>
           <el-table-column label="获得/扣除原因" show-overflow-tooltip>
@@ -54,18 +56,18 @@
               />
             </template>
           </el-table-column>
-          <el-table-column prop="given_by_name" label="发放人" width="120" />
+          <el-table-column prop="given_by_name" label="赋能官 ✨" width="120" />
           <el-table-column prop="created_at" label="时间" width="180" />
         </el-table>
       </div>
 
       <!-- 移动端卡片列表 -->
       <div v-else class="mobile-records" v-loading="loading">
-        <div v-for="(row, index) in records" :key="index" class="record-card">
+        <div v-for="(row, index) in records" :key="index" class="record-card" :class="{ 'record-card-punish': row.points <= -5 }">
           <div class="record-card-top">
             <span class="record-type">{{ row.thumb_type_name }}</span>
-            <span :class="['record-points', { 'negative-points': row.points < 0 }]">
-              {{ row.points > 0 ? '+' : '' }}{{ row.points }}
+            <span :class="['record-points', pointsClass(row.points)]">
+              <span v-if="row.points <= -5" class="big-punish-icon">☄️</span>{{ row.points > 0 ? '+' : '' }}{{ row.points }}
             </span>
           </div>
           <div class="record-reason">{{ row.reason }}</div>
@@ -78,7 +80,7 @@
             class="parent-message-alert"
           />
           <div class="record-meta">
-            <span>{{ row.given_by_name }}</span>
+            <span>✨ {{ row.given_by_name }}</span>
             <span>{{ row.created_at }}</span>
           </div>
         </div>
@@ -114,6 +116,12 @@ const total = ref(0)
 const isMobile = ref(window.innerWidth <= 768)
 
 const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
+
+const pointsClass = (points) => {
+  if (points <= -5) return 'big-negative-points'
+  if (points < 0) return 'negative-points'
+  return ''
+}
 
 const loadStats = async () => {
   try {
@@ -207,6 +215,16 @@ onUnmounted(() => {
   font-weight: bold;
 }
 
+.big-negative-points {
+  color: #c0392b;
+  font-weight: 900;
+  font-size: 1.1em;
+}
+
+.big-punish-icon {
+  margin-right: 2px;
+}
+
 .parent-message-alert {
   margin-top: 6px;
   padding: 4px 8px;
@@ -235,6 +253,12 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 6px;
   box-shadow: 0 4px 12px rgba(255, 107, 157, 0.08);
+}
+
+.record-card-punish {
+  background: linear-gradient(135deg, #FFF0F0 0%, #FFE8E8 100%);
+  border: 1px solid #f56c6c44;
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.15);
 }
 
 .record-card-top {

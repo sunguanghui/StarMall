@@ -6,7 +6,9 @@
       "Bash(python -c \"import json,sys; p=json.load\\(sys.stdin\\); print\\('vue:', p['dependencies'].get\\('vue',''\\)\\); print\\('element-plus:', p['dependencies'].get\\('element-plus',''\\)\\); print\\('echarts:', p['dependencies'].get\\('echarts',''\\)\\)\")",
       "Bash(python -c \"import json,sys; p=json.load\\(sys.stdin\\); [print\\(k,v\\) for k,v in {**p.get\\('dependencies',{}\\),**p.get\\('devDependencies',{}\\)}.items\\(\\)]\")",
       "Bash(docker compose *)",
-      "Bash(docker.exe compose *)"
+      "Bash(docker.exe compose *)",
+      "Bash(xargs grep *)",
+      "Bash(del *)"
     ]
   }
 }

@@ -27,12 +27,13 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="扣除能量模式">
+        <el-form-item label="操作模式">
           <el-switch
             v-model="form.is_deduction"
-            active-text="红牌警告（扣1能量）"
+            active-text="宇宙惩罚（扣能量）"
             inactive-text="发放星辰币"
             active-color="#f56c6c"
+            @change="onModeChange"
           />
         </el-form-item>
 
@@ -49,9 +50,38 @@
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item v-else label="扣除说明">
-          <el-tag type="danger">本次将扣除该用户 1 点能量</el-tag>
-        </el-form-item>
+        <template v-else>
+          <el-form-item label="惩罚档位">
+            <div class="punish-presets">
+              <el-button
+                v-for="p in punishPresets"
+                :key="p.points"
+                type="danger"
+                :plain="form.deductionPoints !== p.points"
+                round
+                @click="selectPreset(p.points)"
+              >
+                {{ p.label }}
+              </el-button>
+            </div>
+          </el-form-item>
+          <el-form-item label="自定义黑洞">
+            <div class="custom-punish">
+              <el-input-number
+                v-model="form.customPoints"
+                :max="-1"
+                :step="1"
+                placeholder="输入负数"
+                style="width:160px"
+                @change="onCustomChange"
+              />
+              <span class="punish-unit">能量</span>
+              <el-tag type="danger" v-if="currentDeduction !== null" class="punish-preview">
+                ☄️ 本次将扣除 {{ Math.abs(currentDeduction) }} 点能量
+              </el-tag>
+            </div>
+          </el-form-item>
+        </template>
 
         <el-form-item label="原因" prop="reason">
           <el-input
@@ -77,7 +107,7 @@
             @click="handleSubmit"
             :loading="submitting"
           >
-            {{ form.is_deduction ? '执行红牌警告' : '发放星辰币' }}
+            {{ form.is_deduction ? `执行宇宙惩罚 (${currentDeduction ?? '?'} 能量)` : '发放星辰币' }}
           </el-button>
           <el-button @click="resetForm">重置</el-button>
         </el-form-item>
@@ -101,7 +131,7 @@
         </el-table-column>
         <el-table-column prop="reason" label="原因" show-overflow-tooltip />
         <el-table-column prop="parent_message" label="舰长寄语" show-overflow-tooltip />
-        <el-table-column prop="given_by_name" label="发放人" width="120" />
+        <el-table-column prop="given_by_name" label="赋能官 ✨" width="120" />
         <el-table-column prop="created_at" label="发放时间" width="180" />
       </el-table>
 
@@ -119,7 +149,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Star, Promotion } from '@element-plus/icons-vue'
 import api from '@/utils/api'
@@ -129,12 +159,26 @@ const submitting = ref(false)
 const searchLoading = ref(false)
 const userOptions = ref([])
 
+const punishPresets = [
+  { label: '陨石撞击 (-2)', points: -2 },
+  { label: '星暴气流 (-5)', points: -5 },
+  { label: '黑洞吞噬 (-10)', points: -10 },
+]
+
 const form = reactive({
   user_id: null,
   thumb_type: 'single',
   reason: '',
   parent_message: '',
-  is_deduction: false
+  is_deduction: false,
+  deductionPoints: null,
+  customPoints: null
+})
+
+const currentDeduction = computed(() => {
+  if (!form.is_deduction) return null
+  if (form.customPoints !== null && form.customPoints <= -1) return form.customPoints
+  return form.deductionPoints
 })
 
 const rules = {
@@ -148,11 +192,24 @@ const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 
-const searchUsers = async (query) => {
-  if (!query) {
-    userOptions.value = []
-    return
+const onModeChange = () => {
+  form.deductionPoints = null
+  form.customPoints = null
+}
+
+const selectPreset = (points) => {
+  form.customPoints = null
+  form.deductionPoints = form.deductionPoints === points ? null : points
+}
+
+const onCustomChange = (val) => {
+  if (val !== null && val <= -1) {
+    form.deductionPoints = null
   }
+}
+
+const searchUsers = async (query) => {
+  if (!query) { userOptions.value = []; return }
   searchLoading.value = true
   try {
     const res = await api.get('/users', { params: { keyword: query, per_page: 20 } })
@@ -167,9 +224,13 @@ const searchUsers = async (query) => {
 const handleSubmit = async () => {
   if (!formRef.value) return
 
+  if (form.is_deduction && currentDeduction.value === null) {
+    ElMessage.error('请选择惩罚档位或输入自定义扣分值')
+    return
+  }
+
   await formRef.value.validate(async (valid) => {
     if (!valid) return
-
     submitting.value = true
     try {
       const payload = {
@@ -178,8 +239,11 @@ const handleSubmit = async () => {
         reason: form.reason,
         parent_message: form.parent_message
       }
+      if (form.is_deduction) {
+        payload.points = currentDeduction.value
+      }
       await api.post('/thumbs', payload)
-      ElMessage.success(form.is_deduction ? '红牌警告已执行' : '星辰币发放成功')
+      ElMessage.success(form.is_deduction ? `宇宙惩罚已执行（${currentDeduction.value} 能量）` : '星辰币发放成功')
       resetForm()
       await loadRecords()
     } catch (error) {
@@ -197,6 +261,8 @@ const resetForm = () => {
   form.reason = ''
   form.parent_message = ''
   form.is_deduction = false
+  form.deductionPoints = null
+  form.customPoints = null
 }
 
 const loadRecords = async () => {
@@ -214,9 +280,7 @@ const loadRecords = async () => {
   }
 }
 
-onMounted(() => {
-  loadRecords()
-})
+onMounted(() => { loadRecords() })
 </script>
 
 <style scoped>
@@ -239,5 +303,28 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+
+.punish-presets {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.custom-punish {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.punish-unit {
+  font-size: 14px;
+  color: #666;
+}
+
+.punish-preview {
+  font-size: 13px;
+  font-weight: 700;
 }
 </style>

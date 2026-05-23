@@ -53,7 +53,7 @@ const routes = [
         path: '/admin/users',
         name: 'AdminUsers',
         component: () => import('@/views/admin/Users.vue'),
-        meta: { title: '用户管理', requireAdmin: true }
+        meta: { title: '用户管理', requireAdmin: true, requireSuperAdmin: true }
       },
       {
         path: '/admin/thumbs',
@@ -65,13 +65,13 @@ const routes = [
         path: '/admin/products',
         name: 'AdminProducts',
         component: () => import('@/views/admin/Products.vue'),
-        meta: { title: '商品管理', requireAdmin: true }
+        meta: { title: '商品管理', requireAdmin: true, requireSuperAdmin: true }
       },
       {
         path: '/admin/exchanges',
         name: 'AdminExchanges',
         component: () => import('@/views/admin/Exchanges.vue'),
-        meta: { title: '兑换管理', requireAdmin: true }
+        meta: { title: '兑换管理', requireAdmin: true, requireSuperAdmin: true }
       },
       {
         path: '/wishlist',
@@ -80,10 +80,28 @@ const routes = [
         meta: { title: '星际心愿单' }
       },
       {
+        path: '/help',
+        name: 'Help',
+        component: () => import('@/views/Help.vue'),
+        meta: { title: '航行指南' }
+      },
+      {
         path: '/admin/wishlists',
         name: 'AdminWishlists',
         component: () => import('@/views/admin/Wishlists.vue'),
-        meta: { title: '心愿审核', requireAdmin: true }
+        meta: { title: '心愿审核', requireAdmin: true, requireSuperAdmin: true }
+      },
+      {
+        path: '/tasks',
+        name: 'Tasks',
+        component: () => import('@/views/Tasks.vue'),
+        meta: { title: '任务大厅' }
+      },
+      {
+        path: '/admin/tasks',
+        name: 'AdminTasks',
+        component: () => import('@/views/admin/AdminTasks.vue'),
+        meta: { title: '任务管理', requireAdmin: true }
       }
     ]
   }
@@ -97,10 +115,10 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
-  
+
   // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - 星途补给站` : '星途补给站'
-  
+
   // 登录和注册页面直接放行
   if (to.path === '/login' || to.path === '/register') {
     if (userStore.token && to.path === '/login') {
@@ -110,22 +128,26 @@ router.beforeEach((to, from, next) => {
     }
     return
   }
-  
+
   // 检查是否登录
   if (!userStore.token) {
     next('/login')
     return
   }
-  
+
   // 检查管理员权限
   if (to.meta.requireAdmin && userStore.userInfo?.role !== 'admin') {
-    ElMessage.error('无权限访问')
     next('/')
     return
   }
-  
+
+  // 检查超级管理员权限
+  if (to.meta.requireSuperAdmin && !userStore.isSuperAdmin()) {
+    next('/dashboard')
+    return
+  }
+
   next()
 })
 
 export default router
-
