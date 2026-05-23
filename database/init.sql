@@ -1,3 +1,7 @@
+-- 强制后续的所有中文写入操作使用 utf8mb4
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
 -- 创建数据库
 CREATE DATABASE IF NOT EXISTS thumbs_mall CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -70,12 +74,12 @@ CREATE TABLE IF NOT EXISTS exchange_records (
 
 -- 插入默认管理员账号 (密码: admin123)
 INSERT INTO users (username, password, real_name, role, total_points, available_points) VALUES
-('admin', 'pbkdf2:sha256:260000$salt$hash', '系统管理员', 'admin', 0, 0);
+('admin', 'scrypt:32768:8:1$i0kfF5rTSvoYIK8w$f3a64acc3231e2ae09726f8ec928b75a5617105889add4813756d6adb6ed2ded6b5e8f4102732f34f40e3e48aec18baff3128f974d6933ea77eb71f7e3abadfd', '系统管理员', 'admin', 0, 0);
 
 -- 插入测试用户 (密码: user123)
 INSERT INTO users (username, password, real_name, email, total_points, available_points) VALUES
-('zhangsan', 'pbkdf2:sha256:260000$salt$hash', '张三', 'zhangsan@example.com', 100, 100),
-('lisi', 'pbkdf2:sha256:260000$salt$hash', '李四', 'lisi@example.com', 50, 50);
+('zhangsan', 'scrypt:32768:8:1$RYUIJQhxyh2NrIZM$bbdd6fa8eb3a1d72ae2c1eb347bb8363b61fd16951791512dcb7c2371ed97a32d9ee6edf95d1da739d1745492cc1cbddc53285cfd4b909c38f21dbebb531c4d6', '张三', 'zhangsan@example.com', 100, 100),
+('lisi', 'scrypt:32768:8:1$kbt6ZfAICQTlL1fX$fafbc667c308f90851d4e833757c558b4b79d1dc4a03addb9fe1c5a547faf1a4407e30bcf00fc99ee157b9031f59ad8977deb05ad4abe235b28ee2821586f673', '李四', 'lisi@example.com', 50, 50);
 
 -- 插入测试商品
 INSERT INTO products (name, description, points_required, stock, status, sort_order) VALUES
