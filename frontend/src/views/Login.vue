@@ -212,7 +212,10 @@
                 class="child-card"
                 @click="selectChild(child)"
               >
-                <div class="child-avatar">{{ child.avatar }}</div>
+                <div class="child-avatar">
+                  <span v-if="!avatarIsUrl(child.avatar)">{{ resolveAvatar(child.avatar) }}</span>
+                  <el-avatar v-else :size="52" :src="child.avatar" />
+                </div>
                 <div class="child-name">{{ child.name }}</div>
               </div>
             </div>
@@ -221,7 +224,10 @@
           <!-- 已选头像：图形密码盘 -->
           <div v-else class="pattern-lock-area">
             <div class="selected-child-info">
-              <span class="child-avatar-sm">{{ selectedChild.avatar }}</span>
+              <span class="child-avatar-sm">
+                <span v-if="!avatarIsUrl(selectedChild.avatar)">{{ resolveAvatar(selectedChild.avatar) }}</span>
+                <el-avatar v-else :size="28" :src="selectedChild.avatar" />
+              </span>
               <span class="child-name-sm">{{ selectedChild.name }}</span>
               <button class="back-child-btn" @click="resetChildLogin">✕ 切换</button>
             </div>
@@ -329,6 +335,19 @@ const toggleFlip = () => {
     resetChildLogin()
   }
 }
+
+// ===== 头像 key → emoji 转换（与后台 presetMap 保持一致） =====
+const presetMap = {
+  preset_1: '🚀', preset_2: '👨‍🚀', preset_3: '🌟',
+  preset_4: '🪐', preset_5: '🛸', preset_6: '⭐'
+}
+const resolveAvatar = (avatar) => {
+  if (!avatar) return '🚀'
+  if (presetMap[avatar]) return presetMap[avatar]
+  // 上传图片 URL 原样返回（模板里用 el-avatar 渲染）
+  return avatar
+}
+const avatarIsUrl = (avatar) => avatar && (avatar.startsWith('/') || avatar.startsWith('http'))
 
 // ===== 儿童专属通道数据（从后端 /api/auth/child-profiles 拉取，免鉴权） =====
 const children = ref([])
