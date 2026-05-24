@@ -71,6 +71,15 @@
 ### 自动化运维
 - **定时数据库备份**：每日凌晨 3:00 自动 `mysqldump` 备份到 `backend/backups/`，保留最近 7 份
 - **能量衰减定时任务**：每日 00:05 自动检查并执行非活跃用户能量衰减
+- **定时星际简报**：由广播台配置驱动，每日在指定时间向音箱推送早晚简报，可动态修改时间无需重启服务
+
+### 星际广播台
+- **局域网音箱接入**：通过 WebSocket 连接支持 `ws://<IP>:<端口>/ws/status` 协议的音箱设备（端口默认 18888）
+- **即时发分播报**：管理员发放正能量时，自动向音箱推送随机拼接的语音播报文案，包含宇航员姓名、获奖原因、能量变化及当前总能量
+- **定时早晚简报**：APScheduler 驱动，可独立设置早晚时间；播报内容包含当前能量和最近待实现心愿的剩余差值追踪
+- **播报目标配置**：可指定特定宇航员播报，留空则向全体宇航员播报
+- **连接管理**：WebSocket 常驻后台线程，断线自动重连（指数退避，最长 60 秒），心跳间隔可配置
+- **超级管理员专属**：配置页面与全部 API 均需 `is_super_admin=true`，支持一键发送测试广播验证连接
 
 ---
 
@@ -115,6 +124,7 @@
 │  │                 │  Tasks          │  TaskApproval         │   │
 │  │                 │  Help           │  WishlistApproval     │   │
 │  │                 │  ChangePassword │  AdminTasks           │   │
+│  │                 │                 │  BroadcastSettings    │   │
 │  └─────────────────┴─────────────────┴──────────────────────┘   │
 │  状态管理：Pinia（user store）                                     │
 │  路由守卫：requireAdmin · requireSuperAdmin                       │
@@ -124,14 +134,15 @@
 ┌──────────────────────────────────────────────────────────────────┐
 │                    Flask 后端 API + APScheduler                    │
 │  认证 · 用户 · 文件 · 星辰币 · 商品 · 兑换 · 心愿单 · 任务 · 统计  │
-│  定时任务：能量衰减（00:05）· 数据库备份（03:00）                   │
+│  系统设置 · 星际广播台（WebSocket 音箱客户端）                      │
+│  定时任务：能量衰减（00:05）· 数据库备份（03:00）· 早晚简报（可配置）│
 └─────────────────────────┬────────────────────────────────────────┘
                           │ SQLAlchemy ORM
                           ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                      MySQL 8.0                                    │
 │  users · thumbs_records · products · exchange_records            │
-│  wishlists · tasks · task_logs                                   │
+│  wishlists · tasks · task_logs · system_settings                 │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -155,6 +166,7 @@ exchange_records   兑换记录（含盲盒抽奖结果）
 wishlists          星际心愿单
 tasks              任务模板（含专属审批人、创建者）
 task_logs          任务打卡记录（含审批状态）
+system_settings    系统设置（音箱 IP、端口、播报开关、早晚时间、播报目标）
 ```
 
 外键关系：
@@ -193,8 +205,9 @@ task_logs          任务打卡记录（含审批状态）
 StarMall/
 ├── backend/
 │   ├── app.py                   # 全部 API 路由 + APScheduler 定时任务
-│   ├── models.py                # SQLAlchemy 数据模型（7 张表）
+│   ├── models.py                # SQLAlchemy 数据模型（8 张表）
 │   ├── config.py                # 配置类，读取 .env
+│   ├── speaker_client.py        # WebSocket 音箱客户端（单例、断线重连）
 │   ├── requirements.txt         # Python 依赖
 │   ├── reset_admin.py           # 管理员密码重置脚本
 │   ├── uploads/
@@ -234,7 +247,7 @@ StarMall/
 │   ├── nginx.conf
 │   └── Dockerfile
 ├── database/
-│   └── init.sql                 # 一次性建表 + 测试数据（7 张表全量，含新增字段）
+│   └── init.sql                 # 一次性建表 + 测试数据（8 张表全量，含新增字段）
 └── docker-compose.yml
 ```
 
@@ -416,6 +429,7 @@ Base URL：`http://localhost:28001/api`
 | 任务创建/编辑 | ✗ | ✓（仅自己） | ✓ |
 | 打卡审批 | ✗ | ✓（仅负责的） | ✓ |
 | 设置审批人 | ✗ | ✗ | ✓ |
+| 系统设置/广播台 | ✗ | ✗ | ✓ |
 
 ### 接口列表
 
@@ -463,6 +477,9 @@ Base URL：`http://localhost:28001/api`
 | | POST | `/task-logs/{id}/approve` | ✓ 管理员 |
 | | POST | `/task-logs/{id}/reject` | ✓ 管理员 |
 | **统计** | GET | `/stats/dashboard` | ✓ |
+| **系统设置** | GET | `/settings` | ✓ 超级管理员 |
+| | PUT | `/settings` | ✓ 超级管理员 |
+| | POST | `/settings/test-broadcast` | ✓ 超级管理员 |
 
 ### 响应格式
 
@@ -691,14 +708,15 @@ Base URL：`http://localhost:28001/api`
 - [x] ECharts 能量累计趋势折线图
 - [x] Docker Compose 一键部署
 - [x] APScheduler 自动能量衰减（每日 00:05）+ 数据库备份（每日 03:00）
+- [x] 星际广播台：WebSocket 局域网音箱接入，即时发分播报，APScheduler 驱动的早晚定时简报，播报目标可配置
 
 ### 技术指标
 
 | 项目 | 数量 |
 |------|------|
-| 数据表 | 7 张 |
-| 后端 API 接口 | 37 个 |
-| 前端页面组件 | 18 个 |
+| 数据表 | 8 张 |
+| 后端 API 接口 | 40 个 |
+| 前端页面组件 | 19 个 |
 
 ### 后续扩展方向
 
@@ -840,6 +858,19 @@ MySQL 容器首次启动较慢，backend 可能提前尝试连接而失败。等
 ---
 
 ## 更新日志
+
+### v2.2.0 (2026-05-24)
+
+#### 新增功能
+- 星际广播台：通过 WebSocket 连接局域网音箱，即时发分语音播报（发放正能量 / 任务审批通过时触发）
+- 定时星际简报：APScheduler 驱动的每日早晚简报，包含当前能量与心愿追踪，时间可动态配置无需重启
+- 系统设置页面（`/admin/broadcast-settings`）：音箱 IP、端口（默认 18888）、心跳间隔、播报开关、播报目标配置，仅超级管理员可访问
+- 一键测试广播：保存配置后可立即发送测试语音，最多等待 5 秒确认连接
+
+#### 数据库变更
+- 新增 `system_settings` 表（`speaker_ip`、`speaker_port`、`heartbeat_interval`、`enable_broadcast`、`enable_timed_broadcast`、`morning_broadcast_time`、`evening_broadcast_time`、`broadcast_targets`）
+
+---
 
 ### v2.1.0 (2026-05-23)
 

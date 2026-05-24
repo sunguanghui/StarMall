@@ -202,6 +202,45 @@
       </el-collapse>
     </el-card>
 
+    <!-- 星际广播台 -->
+    <el-card class="section-card" id="section-broadcast">
+      <template #header><div class="section-header">📡 星际广播台</div></template>
+      <el-alert type="info" :closable="false" style="margin-bottom:12px">
+        <template #title><span>广播台配置与操作仅限 <b>👑 超级管理员（舰长）</b>，路径：管理中心 → 星际广播台。</span></template>
+      </el-alert>
+      <el-table :data="broadcastFeatureData" border size="small" style="margin-bottom:14px">
+        <el-table-column prop="feature" label="功能" width="140" />
+        <el-table-column prop="desc" label="说明" />
+      </el-table>
+      <el-collapse accordion>
+        <el-collapse-item title="连接配置步骤" name="broadcast-setup">
+          <ol class="step-list">
+            <li>在「音箱连接配置」填入音箱 IP 地址和端口（默认 18888）</li>
+            <li>根据需要调整心跳间隔（默认 10 秒），保持 WebSocket 长连接</li>
+            <li>点击「保存配置」后，后端立即尝试建立 WebSocket 连接</li>
+            <li>点击「发送测试广播」，等待 5 秒内音箱播报测试语音，确认连接正常</li>
+          </ol>
+        </el-collapse-item>
+        <el-collapse-item title="即时发分播报" name="broadcast-instant">
+          <p class="desc-text">开启「全局即时播报开关」后，管理员通过<b>发放星辰币</b>（正能量）或<b>审批通过任务打卡</b>时，系统自动向音箱播报随机拼接的文案，内容包含宇航员姓名、奖励原因、当次能量和当前总能量。</p>
+          <el-alert type="warning" :closable="false" style="margin-top:8px">
+            <template #title>扣除能量操作不触发即时播报，仅正能量发放触发。</template>
+          </el-alert>
+        </el-collapse-item>
+        <el-collapse-item title="定时星际简报" name="broadcast-timed">
+          <p class="desc-text">开启「启用每日定时简报」后，系统在设定的早晚时间分别向音箱播报：</p>
+          <ul class="step-list">
+            <li>当前总能量</li>
+            <li>若宇航员有待实现的心愿，播报距目标还差多少星辰币</li>
+          </ul>
+          <p class="desc-text" style="margin-top:8px">「播报目标宇航员」留空时向全体普通用户播报；选中特定用户则只播报选中用户。</p>
+          <el-alert type="info" :closable="false" style="margin-top:8px">
+            <template #title>保存配置后定时任务立即生效，无需重启服务。</template>
+          </el-alert>
+        </el-collapse-item>
+      </el-collapse>
+    </el-card>
+
     <!-- 管理员功能 -->
     <el-card class="section-card" id="section-admin">
       <template #header><div class="section-header">⚙️ 管理员功能</div></template>
@@ -255,6 +294,9 @@
             <template #title>领航员只能看到自己创建的任务和自己负责审批的打卡记录。</template>
           </el-alert>
         </el-collapse-item>
+        <el-collapse-item title="8.7 星际广播台（仅舰长）" name="admin-broadcast">
+          <p>配置局域网音箱的 IP、端口（默认 18888）和心跳间隔，开启即时播报和定时简报开关，支持一键发送测试广播验证连接。详见上方「📡 星际广播台」章节。</p>
+        </el-collapse-item>
       </el-collapse>
     </el-card>
 
@@ -283,6 +325,7 @@ const navItems = [
   { id: 'section-exchanges', icon: '📦', label: '兑换记录' },
   { id: 'section-wishlist',  icon: '🌟', label: '心愿单' },
   { id: 'section-tasks',     icon: '🎯', label: '任务大厅' },
+  { id: 'section-broadcast', icon: '📡', label: '广播台' },
   { id: 'section-admin',     icon: '⚙️', label: '管理员' },
   { id: 'section-faq',       icon: '❓', label: '常见问题' },
 ]
@@ -361,6 +404,13 @@ const streakData = [
   { cond: '同一天多次打卡通过', result: '连击天数不重复累加' },
   { cond: '中断超过1天', result: '连击天数重置为1' },
   { cond: '累计满7天（7、14、21…）', result: '触发「星云爆发」额外奖励 +10 能量' },
+]
+
+const broadcastFeatureData = [
+  { feature: '即时发分播报', desc: '管理员发放正能量时，自动向音箱语音播报获奖消息（需启用全局播报开关）' },
+  { feature: '定时早晨简报', desc: '每日设定时间播报当前能量总览及最近心愿追踪剩余差值' },
+  { feature: '定时晚间简报', desc: '每日晚间播报能量汇总与心愿进度，鼓励宇航员继续努力' },
+  { feature: '音箱连接配置', desc: '配置音箱 IP 地址、端口（默认 18888）和 WebSocket 心跳间隔（默认 10 秒）' },
 ]
 
 const thumbTypeData = [
