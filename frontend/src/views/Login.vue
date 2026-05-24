@@ -198,15 +198,25 @@
           </div>
 
           <!-- 未选头像：展示儿童列表 -->
-          <div v-if="!selectedChild" class="child-list">
-            <div
-              v-for="child in children"
-              :key="child.username"
-              class="child-card"
-              @click="selectChild(child)"
-            >
-              <div class="child-avatar">{{ child.avatar }}</div>
-              <div class="child-name">{{ child.name }}</div>
+          <div v-if="!selectedChild">
+            <div v-if="childrenLoading" class="child-loading">🛸 正在扫描舰员名单…</div>
+            <div v-else-if="children.length === 0" class="child-empty">
+              <div class="child-empty-icon">🌌</div>
+              <p>暂无注册宇航员</p>
+              <p class="child-empty-sub">请联系舰长在后台添加儿童账号</p>
+            </div>
+            <div v-else class="child-list">
+              <div
+                v-for="child in children"
+                :key="child.username"
+                class="child-card"
+                :class="{ 'mock-card': child.isMock }"
+                @click="selectChild(child)"
+              >
+                <div class="child-avatar">{{ child.avatar }}</div>
+                <div class="child-name">{{ child.name }}</div>
+                <div v-if="child.isMock" class="mock-badge">演示</div>
+              </div>
             </div>
           </div>
 
@@ -324,14 +334,28 @@ const toggleFlip = () => {
 
 // ===== 儿童专属通道数据（从后端拉取，不在前端存密码和图案） =====
 const children = ref([])
+const childrenLoading = ref(false)
+
+const MOCK_CHILDREN = [
+  { username: '__mock_1__', name: '小宇航员', avatar: '👨‍🚀', isMock: true },
+  { username: '__mock_2__', name: '小探索家', avatar: '🚀',   isMock: true },
+]
 
 const loadChildProfiles = async () => {
+  childrenLoading.value = true
   try {
     const res = await fetch('/api/auth/child-profiles')
     const json = await res.json()
-    if (json.code === 200) children.value = json.data
+    if (json.code === 200 && json.data?.length > 0) {
+      children.value = json.data
+    } else {
+      children.value = MOCK_CHILDREN
+    }
   } catch (e) {
     console.error('加载儿童账号失败:', e)
+    children.value = MOCK_CHILDREN
+  } finally {
+    childrenLoading.value = false
   }
 }
 
@@ -366,6 +390,16 @@ const addPattern = async (idx) => {
   patternInput.value.push(idx)
 
   if (patternInput.value.length === PATTERN_LENGTH) {
+    // Mock 账号：直接演示，不请求后端
+    if (selectedChild.value.isMock) {
+      ElMessage.success('🎉 演示模式：图形锁交互正常！真实账号请由舰长在后台添加。')
+      setTimeout(() => {
+        patternInput.value = []
+        patternError.value = false
+      }, 1200)
+      return
+    }
+
     loading.value = true
     try {
       const res = await fetch('/api/auth/child-login', {
@@ -846,6 +880,22 @@ const parallaxStyles = computed(() => ({
 }
 
 /* ===== 儿童通道 — 头像选择列表 ===== */
+.child-loading {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 14px;
+  padding: 28px 0;
+  letter-spacing: 1px;
+}
+
+.child-empty {
+  text-align: center;
+  padding: 20px 0 24px;
+}
+.child-empty-icon { font-size: 48px; margin-bottom: 10px; }
+.child-empty p { color: rgba(255, 255, 255, 0.75); font-size: 15px; font-weight: 700; margin: 0 0 4px; }
+.child-empty-sub { font-size: 12px !important; color: rgba(255, 255, 255, 0.4) !important; font-weight: 400 !important; }
+
 .child-list {
   display: flex;
   gap: 20px;
@@ -872,6 +922,19 @@ const parallaxStyles = computed(() => ({
   border-color: rgba(255, 107, 157, 0.5);
   transform: translateY(-4px) scale(1.04);
   box-shadow: 0 8px 24px rgba(255, 107, 157, 0.35);
+}
+
+.mock-card { border-style: dashed; }
+
+.mock-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #FFD6A5;
+  background: rgba(255, 180, 80, 0.25);
+  border: 1px solid rgba(255, 180, 80, 0.4);
+  border-radius: 10px;
+  padding: 1px 7px;
+  letter-spacing: 0.5px;
 }
 
 .child-avatar {
