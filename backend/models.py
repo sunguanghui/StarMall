@@ -260,3 +260,31 @@ class TaskLog(db.Model):
             'created_at':       self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
             'updated_at':       self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None,
         }
+
+
+class SystemSettings(db.Model):
+    """系统设置模型（单行配置表）"""
+    __tablename__ = 'system_settings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    speaker_ip = db.Column(db.String(64), default='')
+    heartbeat_interval = db.Column(db.Integer, default=10)
+    enable_broadcast = db.Column(db.Boolean, default=False)
+    enable_timed_broadcast = db.Column(db.Boolean, default=False)
+    morning_broadcast_time = db.Column(db.String(5), default='07:00')
+    evening_broadcast_time = db.Column(db.String(5), default='21:00')
+    broadcast_targets = db.Column(db.JSON, default=list)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'speaker_ip': self.speaker_ip or '',
+            'heartbeat_interval': self.heartbeat_interval or 10,
+            'enable_broadcast': self.enable_broadcast or False,
+            'enable_timed_broadcast': self.enable_timed_broadcast or False,
+            'morning_broadcast_time': self.morning_broadcast_time or '07:00',
+            'evening_broadcast_time': self.evening_broadcast_time or '21:00',
+            'broadcast_targets': self.broadcast_targets or [],
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
+        }

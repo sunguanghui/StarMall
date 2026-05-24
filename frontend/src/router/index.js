@@ -122,6 +122,12 @@ const routes = [
         name: 'AdminTasks',
         component: () => import('@/views/admin/AdminTasks.vue'),
         meta: { title: '任务定义管理', requireAdmin: true }
+      },
+      {
+        path: '/admin/broadcast-settings',
+        name: 'BroadcastSettings',
+        component: () => import('@/views/admin/BroadcastSettings.vue'),
+        meta: { title: '星际广播台', requireAdmin: true, requireSuperAdmin: true }
       }
     ]
   }

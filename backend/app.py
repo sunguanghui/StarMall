@@ -10,7 +10,8 @@ import subprocess
 import glob as glob_module
 from config import Config
 import random
-from models import db, User, ThumbsRecord, Product, ExchangeRecord, Wishlist, Task, TaskLog
+from models import db, User, ThumbsRecord, Product, ExchangeRecord, Wishlist, Task, TaskLog, SystemSettings
+from speaker_client import speaker_client
 
 # 盲盒奖池（可自定义扩展）
 BLIND_BOX_PRIZES = [
@@ -48,6 +49,91 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+# ==================== 播报文案引擎 ====================
+
+def _build_instant_broadcast_text(admin_name, admin_role, target_name, reason, amount, total):
+    """构建即时发分播报文案（随机拼接）"""
+    openers = [
+        '叮咚！星际广播开启！',
+        '哇哦！收到来自舰队指挥中心的最新战报！',
+    ]
+    events = [
+        f'报告小宇航员 {target_name}！因为你{reason}，{admin_role} {admin_name} 亲自为你注入了 {amount} 个星辰币！',
+        f'太棒啦！小宇航员 {target_name} 顺利完成{reason}，{admin_role} {admin_name} 奖励了 {amount} 个星辰币！',
+    ]
+    endings = [
+        f'现在的总能量已经达到 {total} 啦，继续向宇宙深处出发吧！',
+    ]
+    return random.choice(openers) + random.choice(events) + random.choice(endings)
+
+
+def _build_timed_broadcast_text(target_name, total, period, wish_name=None, energy_diff=None):
+    """构建定时简报文案（含可选心愿追踪）"""
+    if period == 'morning':
+        base = (
+            f'早上好，小宇航员 {target_name}！新一天的星际航行开始啦！'
+            f'目前飞船总能量为 {total} 个星辰币。'
+            f'昨天的表现非常棒，今天也要继续加油巡航哦！'
+        )
+    else:
+        base = (
+            f'夜幕降临，空间站广播开启。小宇航员 {target_name}，今天的航行辛苦啦！'
+            f'目前总能量为 {total} 个星辰币。'
+            f'快快开启睡眠舱模式，恢复体力，明天见！'
+        )
+    if wish_name and energy_diff is not None:
+        wish_phrases = [
+            f'星际雷达提示，距离你的心愿目标【{wish_name}】，只差最后 {energy_diff} 个星辰币啦，一鼓作气拿下它吧！',
+            f'悄悄告诉你，再积攒 {energy_diff} 个星辰币，就能成功解锁【{wish_name}】了哦，继续努力！',
+        ]
+        base += random.choice(wish_phrases)
+    return base
+
+
+def _get_closest_wish(user):
+    """查询目标能量大于当前能量且差值最小的 pending 心愿"""
+    wish = (
+        Wishlist.query
+        .filter(
+            Wishlist.user_id == user.id,
+            Wishlist.status == 'pending',
+            Wishlist.expected_points > user.available_points
+        )
+        .order_by((Wishlist.expected_points - user.available_points).asc())
+        .first()
+    )
+    if wish:
+        return wish.title, wish.expected_points - user.available_points
+    return None, None
+
+
+def _get_settings():
+    """获取系统设置（若无则返回 None）"""
+    return SystemSettings.query.first()
+
+
+def _try_instant_broadcast(target_user, admin_user, reason, amount):
+    """即时播报入口，失败静默"""
+    try:
+        settings = _get_settings()
+        if not settings or not settings.enable_broadcast:
+            return
+        if not settings.speaker_ip:
+            return
+        admin_role = '舰长' if admin_user.is_super_admin else '领航员'
+        text = _build_instant_broadcast_text(
+            admin_name=admin_user.real_name,
+            admin_role=admin_role,
+            target_name=target_user.real_name,
+            reason=reason,
+            amount=amount,
+            total=target_user.available_points
+        )
+        speaker_client.send_text(text)
+    except Exception:
+        pass
+
+
 # ==================== 文件上传 API ====================
 
 @app.route('/api/upload', methods=['POST'])
@@ -56,24 +142,24 @@ def upload_file():
     """上传文件"""
     if 'file' not in request.files:
         return jsonify({'code': 400, 'message': '没有文件'}), 400
-    
+
     file = request.files['file']
-    
+
     if file.filename == '':
         return jsonify({'code': 400, 'message': '没有选择文件'}), 400
-    
+
     if file and allowed_file(file.filename):
         # 生成唯一文件名
         ext = file.filename.rsplit('.', 1)[1].lower()
         filename = f"{uuid.uuid4().hex}.{ext}"
         filepath = os.path.join(UPLOAD_FOLDER, filename)
-        
+
         # 保存文件
         file.save(filepath)
-        
+
         # 返回文件URL
         file_url = f"/api/uploads/{filename}"
-        
+
         return jsonify({
             'code': 200,
             'message': '上传成功',
@@ -82,7 +168,7 @@ def upload_file():
                 'filename': filename
             }
         })
-    
+
     return jsonify({'code': 400, 'message': '不支持的文件类型'}), 400
 
 
@@ -154,14 +240,14 @@ def login():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-    
+
     if not username or not password:
         return jsonify({'code': 400, 'message': '用户名和密码不能为空'}), 400
-    
+
     user = User.query.filter_by(username=username).first()
     if not user or not user.check_password(password):
         return jsonify({'code': 401, 'message': '用户名或密码错误'}), 401
-    
+
     access_token = create_access_token(identity=str(user.id))
     return jsonify({
         'code': 200,
@@ -179,10 +265,10 @@ def get_user_info():
     """获取当前用户信息"""
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
-    
+
     if not user:
         return jsonify({'code': 404, 'message': '用户不存在'}), 404
-    
+
     return jsonify({
         'code': 200,
         'data': user.to_dict()
@@ -195,25 +281,25 @@ def change_password():
     """修改当前用户密码"""
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
-    
+
     if not user:
         return jsonify({'code': 404, 'message': '用户不存在'}), 404
-    
+
     data = request.get_json()
     old_password = data.get('old_password')
     new_password = data.get('new_password')
-    
+
     if not old_password or not new_password:
         return jsonify({'code': 400, 'message': '旧密码和新密码不能为空'}), 400
-    
+
     # 验证旧密码
     if not user.check_password(old_password):
         return jsonify({'code': 400, 'message': '旧密码错误'}), 400
-    
+
     # 设置新密码
     user.set_password(new_password)
     db.session.commit()
-    
+
     return jsonify({
         'code': 200,
         'message': '密码修改成功'
@@ -229,14 +315,14 @@ def register():
     real_name = data.get('real_name')
     email = data.get('email')
     phone = data.get('phone')
-    
+
     if not username or not password or not real_name:
         return jsonify({'code': 400, 'message': '用户名、密码和姓名不能为空'}), 400
-    
+
     # 检查用户名是否已存在
     if User.query.filter_by(username=username).first():
         return jsonify({'code': 400, 'message': '用户名已存在'}), 400
-    
+
     # 创建新用户
     user = User(
         username=username,
@@ -248,10 +334,10 @@ def register():
         available_points=0
     )
     user.set_password(password)
-    
+
     db.session.add(user)
     db.session.commit()
-    
+
     return jsonify({
         'code': 200,
         'message': '注册成功',
@@ -289,7 +375,7 @@ def get_users():
     pagination = query.order_by(User.created_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
-    
+
     return jsonify({
         'code': 200,
         'data': {
@@ -307,21 +393,21 @@ def create_user():
     """创建用户"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
-    
+
     if current_user.role != 'admin':
         return jsonify({'code': 403, 'message': '无权限操作'}), 403
-    
+
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
     real_name = data.get('real_name')
-    
+
     if not username or not password or not real_name:
         return jsonify({'code': 400, 'message': '必填字段不能为空'}), 400
-    
+
     if User.query.filter_by(username=username).first():
         return jsonify({'code': 400, 'message': '用户名已存在'}), 400
-    
+
     user = User(
         username=username,
         real_name=real_name,
@@ -331,10 +417,10 @@ def create_user():
         is_super_admin=data.get('is_super_admin', False) if current_user.is_super_admin else False
     )
     user.set_password(password)
-    
+
     db.session.add(user)
     db.session.commit()
-    
+
     return jsonify({
         'code': 200,
         'message': '创建成功',
@@ -348,15 +434,15 @@ def update_user(user_id):
     """更新用户信息"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
-    
+
     # 只能修改自己的信息或管理员可以修改所有人
     if current_user.role != 'admin' and current_user_id != user_id:
         return jsonify({'code': 403, 'message': '无权限操作'}), 403
-    
+
     user = User.query.get(user_id)
     if not user:
         return jsonify({'code': 404, 'message': '用户不存在'}), 404
-    
+
     data = request.get_json()
 
     if 'real_name' in data:
@@ -374,7 +460,7 @@ def update_user(user_id):
         user.is_super_admin = data['is_super_admin']
 
     db.session.commit()
-    
+
     return jsonify({
         'code': 200,
         'message': '更新成功',
@@ -388,25 +474,25 @@ def reset_user_password(user_id):
     """管理员重置用户密码"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
-    
+
     # 只有管理员可以重置密码
     if current_user.role != 'admin':
         return jsonify({'code': 403, 'message': '无权限操作'}), 403
-    
+
     user = User.query.get(user_id)
     if not user:
         return jsonify({'code': 404, 'message': '用户不存在'}), 404
-    
+
     data = request.get_json()
     new_password = data.get('new_password')
-    
+
     if not new_password:
         return jsonify({'code': 400, 'message': '新密码不能为空'}), 400
-    
+
     # 设置新密码
     user.set_password(new_password)
     db.session.commit()
-    
+
     return jsonify({
         'code': 200,
         'message': '密码重置成功'
@@ -477,6 +563,15 @@ def give_thumbs():
     db.session.add(record)
     db.session.commit()
 
+    # 即时播报（仅正向发分）
+    if points > 0:
+        _try_instant_broadcast(
+            target_user=user,
+            admin_user=current_user,
+            reason=reason or '表现出色',
+            amount=points
+        )
+
     type_label = {'single': '单星辰币', 'double': '双星辰币', 'deduction': '红牌警告'}
     return jsonify({
         'code': 200,
@@ -512,7 +607,7 @@ def get_thumbs_records():
     pagination = query.order_by(ThumbsRecord.created_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
-    
+
     return jsonify({
         'code': 200,
         'data': {
@@ -538,15 +633,15 @@ def get_thumbs_stats():
         user_id = current_user_id
     else:
         user_id = requested_user_id if requested_user_id else current_user_id
-    
+
     user = User.query.get(user_id)
     if not user:
         return jsonify({'code': 404, 'message': '用户不存在'}), 404
-    
+
     # 统计单双星辰币数量
     single_count = ThumbsRecord.query.filter_by(user_id=user_id, thumb_type='single').count()
     double_count = ThumbsRecord.query.filter_by(user_id=user_id, thumb_type='double').count()
-    
+
     return jsonify({
         'code': 200,
         'data': {
@@ -571,21 +666,21 @@ def get_products():
     per_page = request.args.get('per_page', 20, type=int)
     status = request.args.get('status')  # 'on_shelf' or 'off_shelf'
     keyword = request.args.get('keyword', '')
-    
+
     query = Product.query
-    
+
     # 如果指定了状态则过滤
     if status:
         query = query.filter_by(status=status)
-    
+
     # 关键词搜索
     if keyword:
         query = query.filter(Product.name.like(f'%{keyword}%'))
-    
+
     pagination = query.order_by(Product.sort_order.asc(), Product.id.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
-    
+
     return jsonify({
         'code': 200,
         'data': {
@@ -603,7 +698,7 @@ def get_product(product_id):
     product = Product.query.get(product_id)
     if not product:
         return jsonify({'code': 404, 'message': '商品不存在'}), 404
-    
+
     return jsonify({
         'code': 200,
         'data': product.to_dict()
@@ -616,17 +711,17 @@ def create_product():
     """创建商品"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
-    
+
     if current_user.role != 'admin':
         return jsonify({'code': 403, 'message': '无权限操作'}), 403
-    
+
     data = request.get_json()
     name = data.get('name')
     points_required = data.get('points_required')
-    
+
     if not name or not points_required:
         return jsonify({'code': 400, 'message': '商品名称和积分不能为空'}), 400
-    
+
     product = Product(
         name=name,
         description=data.get('description'),
@@ -637,10 +732,10 @@ def create_product():
         sort_order=data.get('sort_order', 0),
         is_blind_box=data.get('is_blind_box', False)
     )
-    
+
     db.session.add(product)
     db.session.commit()
-    
+
     return jsonify({
         'code': 200,
         'message': '创建成功',
@@ -654,16 +749,16 @@ def update_product(product_id):
     """更新商品信息"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
-    
+
     if current_user.role != 'admin':
         return jsonify({'code': 403, 'message': '无权限操作'}), 403
-    
+
     product = Product.query.get(product_id)
     if not product:
         return jsonify({'code': 404, 'message': '商品不存在'}), 404
-    
+
     data = request.get_json()
-    
+
     if 'name' in data:
         product.name = data['name']
     if 'description' in data:
@@ -680,9 +775,9 @@ def update_product(product_id):
         product.sort_order = data['sort_order']
     if 'is_blind_box' in data:
         product.is_blind_box = data['is_blind_box']
-    
+
     db.session.commit()
-    
+
     return jsonify({
         'code': 200,
         'message': '更新成功',
@@ -696,18 +791,18 @@ def toggle_product_status(product_id):
     """切换商品上下架状态"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
-    
+
     if current_user.role != 'admin':
         return jsonify({'code': 403, 'message': '无权限操作'}), 403
-    
+
     product = Product.query.get(product_id)
     if not product:
         return jsonify({'code': 404, 'message': '商品不存在'}), 404
-    
+
     # 切换状态
     product.status = 'off_shelf' if product.status == 'on_shelf' else 'on_shelf'
     db.session.commit()
-    
+
     return jsonify({
         'code': 200,
         'message': f'商品已{"上架" if product.status == "on_shelf" else "下架"}',
@@ -721,21 +816,21 @@ def delete_product(product_id):
     """删除商品"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
-    
+
     if current_user.role != 'admin':
         return jsonify({'code': 403, 'message': '无权限操作'}), 403
-    
+
     product = Product.query.get(product_id)
     if not product:
         return jsonify({'code': 404, 'message': '商品不存在'}), 404
-    
+
     # 检查是否有兑换记录
     if ExchangeRecord.query.filter_by(product_id=product_id).first():
         return jsonify({'code': 400, 'message': '该商品有兑换记录，不能删除'}), 400
-    
+
     db.session.delete(product)
     db.session.commit()
-    
+
     return jsonify({
         'code': 200,
         'message': '删除成功'
@@ -750,28 +845,28 @@ def create_exchange():
     """创建兑换记录"""
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
-    
+
     data = request.get_json()
     product_id = data.get('product_id')
     quantity = data.get('quantity', 1)
-    
+
     if not product_id:
         return jsonify({'code': 400, 'message': '商品ID不能为空'}), 400
-    
+
     product = Product.query.get(product_id)
     if not product:
         return jsonify({'code': 404, 'message': '商品不存在'}), 404
-    
+
     if product.status != 'on_shelf':
         return jsonify({'code': 400, 'message': '商品已下架，无法兑换'}), 400
-    
+
     if product.stock < quantity:
         return jsonify({'code': 400, 'message': '商品库存不足'}), 400
-    
+
     points_needed = product.points_required * quantity
     if user.available_points < points_needed:
         return jsonify({'code': 400, 'message': '积分不足'}), 400
-    
+
     # 创建兑换记录（盲盒随机抽奖）
     blind_box_result = None
     if product.is_blind_box:
@@ -786,14 +881,14 @@ def create_exchange():
         status='completed',
         remark=f'盲盒抽奖结果：{blind_box_result}' if blind_box_result else None
     )
-    
+
     # 扣除积分和库存
     user.available_points -= points_needed
     product.stock -= quantity
-    
+
     db.session.add(record)
     db.session.commit()
-    
+
     return jsonify({
         'code': 200,
         'message': f'兑换成功！获得：{blind_box_result}' if blind_box_result else '兑换成功',
@@ -807,27 +902,27 @@ def get_exchanges():
     """获取兑换记录"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
-    
+
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
     user_id = request.args.get('user_id', type=int)
     status = request.args.get('status')
-    
+
     query = ExchangeRecord.query
-    
+
     # 普通用户只能查看自己的记录
     if current_user.role != 'admin':
         query = query.filter_by(user_id=current_user_id)
     elif user_id:
         query = query.filter_by(user_id=user_id)
-    
+
     if status:
         query = query.filter_by(status=status)
-    
+
     pagination = query.order_by(ExchangeRecord.created_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
-    
+
     return jsonify({
         'code': 200,
         'data': {
@@ -865,30 +960,30 @@ def cancel_exchange(record_id):
     """取消兑换（退回积分和库存）"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
-    
+
     record = ExchangeRecord.query.get(record_id)
     if not record:
         return jsonify({'code': 404, 'message': '兑换记录不存在'}), 404
-    
+
     # 只有管理员或本人可以取消
     if current_user.role != 'admin' and record.user_id != current_user_id:
         return jsonify({'code': 403, 'message': '无权限操作'}), 403
-    
+
     if record.status != 'completed':
         return jsonify({'code': 400, 'message': '只能取消已完成的兑换'}), 400
-    
+
     # 退回积分
     user = User.query.get(record.user_id)
     user.available_points += record.points_spent
-    
+
     # 退回库存
     product = Product.query.get(record.product_id)
     if product:
         product.stock += record.quantity
-    
+
     record.status = 'cancelled'
     db.session.commit()
-    
+
     return jsonify({
         'code': 200,
         'message': '兑换已取消，积分已退回',
@@ -904,14 +999,14 @@ def get_dashboard_stats():
     """获取仪表板统计数据"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
-    
+
     if current_user.role == 'admin':
         # 管理员看全局统计
         total_users = User.query.filter_by(role='user').count()
         total_thumbs = ThumbsRecord.query.count()
         total_exchanges = ExchangeRecord.query.filter_by(status='completed').count()
         total_products = Product.query.filter_by(status='on_shelf').count()
-        
+
         return jsonify({
             'code': 200,
             'data': {
@@ -1355,6 +1450,14 @@ def approve_task_log(log_id):
     db.session.add(thumb_record)
     db.session.commit()
 
+    # 即时播报
+    _try_instant_broadcast(
+        target_user=user,
+        admin_user=current_user,
+        reason=f'完成任务：{task.title}',
+        amount=task.energy_reward
+    )
+
     msg = f'已批准，已发放 {task.energy_reward} 点能量'
     if streak_bonus:
         msg += f'，星云爆发额外奖励 {streak_bonus} 点'
@@ -1464,6 +1567,91 @@ def upgrade_ship(user_id):
     })
 
 
+# ==================== 系统设置 API ====================
+
+@app.route('/api/settings', methods=['GET'])
+@jwt_required()
+def get_settings():
+    """获取系统设置"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'admin' or not current_user.is_super_admin:
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    settings = SystemSettings.query.first()
+    if not settings:
+        settings = SystemSettings()
+        db.session.add(settings)
+        db.session.commit()
+
+    return jsonify({'code': 200, 'data': settings.to_dict()})
+
+
+@app.route('/api/settings', methods=['PUT'])
+@jwt_required()
+def update_settings():
+    """更新系统设置"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'admin' or not current_user.is_super_admin:
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    settings = SystemSettings.query.first()
+    if not settings:
+        settings = SystemSettings()
+        db.session.add(settings)
+
+    data = request.get_json()
+
+    if 'speaker_ip' in data:
+        settings.speaker_ip = data['speaker_ip'].strip()
+    if 'heartbeat_interval' in data:
+        settings.heartbeat_interval = max(1, int(data['heartbeat_interval']))
+    if 'enable_broadcast' in data:
+        settings.enable_broadcast = bool(data['enable_broadcast'])
+    if 'enable_timed_broadcast' in data:
+        settings.enable_timed_broadcast = bool(data['enable_timed_broadcast'])
+    if 'morning_broadcast_time' in data:
+        settings.morning_broadcast_time = data['morning_broadcast_time']
+    if 'evening_broadcast_time' in data:
+        settings.evening_broadcast_time = data['evening_broadcast_time']
+    if 'broadcast_targets' in data:
+        settings.broadcast_targets = data['broadcast_targets']
+
+    db.session.commit()
+
+    # 重新配置音箱客户端
+    speaker_client.configure(
+        speaker_ip=settings.speaker_ip,
+        heartbeat_interval=settings.heartbeat_interval
+    )
+
+    # 动态刷新定时播报任务
+    _reschedule_broadcast_jobs(settings)
+
+    return jsonify({'code': 200, 'message': '设置已保存', 'data': settings.to_dict()})
+
+
+@app.route('/api/settings/test-broadcast', methods=['POST'])
+@jwt_required()
+def test_broadcast():
+    """发送测试广播"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'admin' or not current_user.is_super_admin:
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    settings = SystemSettings.query.first()
+    if not settings or not settings.speaker_ip:
+        return jsonify({'code': 400, 'message': '请先配置音箱 IP 地址'}), 400
+
+    ok = speaker_client.send_text('叮咚！这是来自星途补给站的测试广播，音箱连接正常，一切就绪！')
+    if ok:
+        return jsonify({'code': 200, 'message': '测试广播已发送'})
+    else:
+        return jsonify({'code': 503, 'message': '音箱未连接，请检查 IP 和网络'}), 503
+
+
 # ==================== 定时任务 ====================
 
 def energy_decay_job():
@@ -1521,6 +1709,88 @@ def db_backup_job():
                 os.remove(old)
 
 
+def do_morning_broadcast():
+    """早上定时简报"""
+    with app.app_context():
+        settings = SystemSettings.query.first()
+        if not settings or not settings.enable_timed_broadcast or not settings.speaker_ip:
+            return
+        target_ids = settings.broadcast_targets or []
+        if not target_ids:
+            target_ids = [u.id for u in User.query.filter_by(role='user').all()]
+        for uid in target_ids:
+            user = User.query.get(uid)
+            if not user:
+                continue
+            wish_name, energy_diff = _get_closest_wish(user)
+            text = _build_timed_broadcast_text(
+                target_name=user.real_name,
+                total=user.available_points,
+                period='morning',
+                wish_name=wish_name,
+                energy_diff=energy_diff
+            )
+            speaker_client.send_text(text)
+
+
+def do_evening_broadcast():
+    """晚上定时简报"""
+    with app.app_context():
+        settings = SystemSettings.query.first()
+        if not settings or not settings.enable_timed_broadcast or not settings.speaker_ip:
+            return
+        target_ids = settings.broadcast_targets or []
+        if not target_ids:
+            target_ids = [u.id for u in User.query.filter_by(role='user').all()]
+        for uid in target_ids:
+            user = User.query.get(uid)
+            if not user:
+                continue
+            wish_name, energy_diff = _get_closest_wish(user)
+            text = _build_timed_broadcast_text(
+                target_name=user.real_name,
+                total=user.available_points,
+                period='evening',
+                wish_name=wish_name,
+                energy_diff=energy_diff
+            )
+            speaker_client.send_text(text)
+
+
+def _reschedule_broadcast_jobs(settings):
+    """根据最新配置动态更新早晚广播的 APScheduler job"""
+    for job_id in ('morning_broadcast', 'evening_broadcast'):
+        if scheduler.get_job(job_id):
+            scheduler.remove_job(job_id)
+
+    if not settings.enable_timed_broadcast:
+        return
+
+    if settings.morning_broadcast_time:
+        try:
+            h, m = settings.morning_broadcast_time.split(':')
+            scheduler.add_job(
+                do_morning_broadcast, 'cron',
+                hour=int(h), minute=int(m),
+                id='morning_broadcast',
+                replace_existing=True
+            )
+        except Exception:
+            pass
+
+    if settings.evening_broadcast_time:
+        try:
+            h, m = settings.evening_broadcast_time.split(':')
+            scheduler.add_job(
+                do_evening_broadcast, 'cron',
+                hour=int(h), minute=int(m),
+                id='evening_broadcast',
+                replace_existing=True
+            )
+        except Exception:
+            pass
+
+
 scheduler = BackgroundScheduler()
 scheduler.add_job(energy_decay_job, 'cron', hour=0, minute=5)
 scheduler.add_job(db_backup_job, 'cron', hour=3, minute=0)
@@ -1559,6 +1829,22 @@ if __name__ == '__main__':
             db.session.commit()
             print('已创建默认管理员账号: admin / admin123')
 
+        # 初始化系统设置（若无记录则写入默认值）
+        if not SystemSettings.query.first():
+            db.session.add(SystemSettings())
+            db.session.commit()
+
+        # 从数据库加载音箱配置
+        settings = SystemSettings.query.first()
+        if settings and settings.speaker_ip:
+            speaker_client.configure(
+                speaker_ip=settings.speaker_ip,
+                heartbeat_interval=settings.heartbeat_interval or 10
+            )
+            speaker_client.start()
+
+        # 注册定时播报任务
+        _reschedule_broadcast_jobs(settings) if settings else None
+
     scheduler.start()
     app.run(host='0.0.0.0', port=28001, debug=True)
-
