@@ -265,7 +265,8 @@ def get_users():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
     keyword = request.args.get('keyword', '')
-    
+    role_filter = request.args.get('role', '')
+
     query = User.query
     if keyword:
         query = query.filter(
@@ -274,7 +275,9 @@ def get_users():
                 User.real_name.like(f'%{keyword}%')
             )
         )
-    
+    if role_filter:
+        query = query.filter_by(role=role_filter)
+
     pagination = query.order_by(User.created_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
@@ -826,6 +829,26 @@ def get_exchanges():
             'per_page': per_page
         }
     })
+
+
+@app.route('/api/exchanges/<int:record_id>/complete', methods=['POST'])
+@jwt_required()
+def complete_exchange(record_id):
+    """确认交付（将 pending 兑换标记为 completed）"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'admin':
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    record = ExchangeRecord.query.get(record_id)
+    if not record:
+        return jsonify({'code': 404, 'message': '兑换记录不存在'}), 404
+    if record.status != 'pending':
+        return jsonify({'code': 400, 'message': '只能确认待处理的兑换'}), 400
+
+    record.status = 'completed'
+    db.session.commit()
+    return jsonify({'code': 200, 'message': '已确认交付', 'data': record.to_dict()})
 
 
 @app.route('/api/exchanges/<int:record_id>/cancel', methods=['POST'])

@@ -8,7 +8,8 @@
       "Bash(docker compose *)",
       "Bash(docker.exe compose *)",
       "Bash(xargs grep *)",
-      "Bash(del *)"
+      "Bash(del *)",
+      "Bash(python3 *)"
     ]
   }
 }

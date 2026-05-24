@@ -19,29 +19,48 @@ const routes = [
     component: () => import('@/layouts/MainLayout.vue'),
     redirect: '/dashboard',
     children: [
+      // ===== 宇航员路由 =====
       {
         path: '/dashboard',
         name: 'Dashboard',
         component: () => import('@/views/Dashboard.vue'),
-        meta: { title: '首页' }
+        meta: { title: '空间站控制台' }
       },
       {
         path: '/mall',
         name: 'Mall',
         component: () => import('@/views/Mall.vue'),
-        meta: { title: '积分商城' }
+        meta: { title: '能量补给舱' }
       },
       {
         path: '/my-points',
         name: 'MyPoints',
         component: () => import('@/views/MyPoints.vue'),
-        meta: { title: '我的积分' }
+        meta: { title: '航行能量轨迹' }
       },
       {
         path: '/my-exchanges',
         name: 'MyExchanges',
         component: () => import('@/views/MyExchanges.vue'),
-        meta: { title: '兑换记录' }
+        meta: { title: '兑换发货舱' }
+      },
+      {
+        path: '/tasks',
+        name: 'Tasks',
+        component: () => import('@/views/Tasks.vue'),
+        meta: { title: '星际任务雷达' }
+      },
+      {
+        path: '/wishlist',
+        name: 'Wishlist',
+        component: () => import('@/views/Wishlist.vue'),
+        meta: { title: '许愿发射台' }
+      },
+      {
+        path: '/help',
+        name: 'Help',
+        component: () => import('@/views/Help.vue'),
+        meta: { title: '星际航行指南' }
       },
       {
         path: '/change-password',
@@ -49,59 +68,60 @@ const routes = [
         component: () => import('@/views/ChangePassword.vue'),
         meta: { title: '修改密码' }
       },
+      // ===== 舰长/领航员路由 =====
       {
-        path: '/admin/users',
-        name: 'AdminUsers',
-        component: () => import('@/views/admin/Users.vue'),
-        meta: { title: '用户管理', requireAdmin: true, requireSuperAdmin: true }
+        path: '/admin/dashboard',
+        name: 'AdminDashboard',
+        component: () => import('@/views/admin/AdminDashboard.vue'),
+        meta: { title: '舰队指挥中心', requireAdmin: true }
       },
       {
         path: '/admin/thumbs',
         name: 'AdminThumbs',
         component: () => import('@/views/admin/Thumbs.vue'),
-        meta: { title: '发放星辰币', requireAdmin: true }
+        meta: { title: '能量源控制', requireAdmin: true }
+      },
+      {
+        path: '/admin/task-approval',
+        name: 'TaskApproval',
+        component: () => import('@/views/admin/TaskApproval.vue'),
+        meta: { title: '任务核验舱', requireAdmin: true }
+      },
+      {
+        path: '/admin/exchange-delivery',
+        name: 'ExchangeDelivery',
+        component: () => import('@/views/admin/ExchangeDelivery.vue'),
+        meta: { title: '补给调度室', requireAdmin: true }
+      },
+      {
+        path: '/admin/wishlist-approval',
+        name: 'WishlistApproval',
+        component: () => import('@/views/admin/WishlistApproval.vue'),
+        meta: { title: '蓝图解析室', requireAdmin: true }
+      },
+      {
+        path: '/admin/users',
+        name: 'AdminUsers',
+        component: () => import('@/views/admin/Users.vue'),
+        meta: { title: '乘员编制管理', requireAdmin: true, requireSuperAdmin: true }
       },
       {
         path: '/admin/products',
         name: 'AdminProducts',
         component: () => import('@/views/admin/Products.vue'),
-        meta: { title: '商品管理', requireAdmin: true, requireSuperAdmin: true }
+        meta: { title: '补给物资库房', requireAdmin: true, requireSuperAdmin: true }
       },
       {
         path: '/admin/exchanges',
         name: 'AdminExchanges',
         component: () => import('@/views/admin/Exchanges.vue'),
-        meta: { title: '兑换管理', requireAdmin: true, requireSuperAdmin: true }
-      },
-      {
-        path: '/wishlist',
-        name: 'Wishlist',
-        component: () => import('@/views/Wishlist.vue'),
-        meta: { title: '星际心愿单' }
-      },
-      {
-        path: '/help',
-        name: 'Help',
-        component: () => import('@/views/Help.vue'),
-        meta: { title: '航行指南' }
-      },
-      {
-        path: '/admin/wishlists',
-        name: 'AdminWishlists',
-        component: () => import('@/views/admin/Wishlists.vue'),
-        meta: { title: '心愿审核', requireAdmin: true, requireSuperAdmin: true }
-      },
-      {
-        path: '/tasks',
-        name: 'Tasks',
-        component: () => import('@/views/Tasks.vue'),
-        meta: { title: '任务大厅' }
+        meta: { title: '全站星际日志', requireAdmin: true, requireSuperAdmin: true }
       },
       {
         path: '/admin/tasks',
         name: 'AdminTasks',
         component: () => import('@/views/admin/AdminTasks.vue'),
-        meta: { title: '任务管理', requireAdmin: true }
+        meta: { title: '任务定义管理', requireAdmin: true }
       }
     ]
   }
@@ -112,14 +132,11 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
 
-  // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - 星途补给站` : '星途补给站'
 
-  // 登录和注册页面直接放行
   if (to.path === '/login' || to.path === '/register') {
     if (userStore.token && to.path === '/login') {
       next('/')
@@ -129,21 +146,24 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  // 检查是否登录
   if (!userStore.token) {
     next('/login')
     return
   }
 
-  // 检查管理员权限
   if (to.meta.requireAdmin && userStore.userInfo?.role !== 'admin') {
-    next('/')
+    next('/dashboard')
     return
   }
 
-  // 检查超级管理员权限
   if (to.meta.requireSuperAdmin && !userStore.isSuperAdmin()) {
-    next('/dashboard')
+    next('/admin/dashboard')
+    return
+  }
+
+  // 管理员访问 /dashboard 自动跳转指挥中心
+  if (to.path === '/dashboard' && userStore.userInfo?.role === 'admin') {
+    next('/admin/dashboard')
     return
   }
 

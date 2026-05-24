@@ -6,32 +6,44 @@
         <h2>🚀 星途补给站</h2>
       </div>
       <el-menu :default-active="activeMenu" router class="menu">
-        <el-menu-item index="/dashboard"><el-icon><House /></el-icon><span>首页</span></el-menu-item>
-        <el-menu-item index="/mall"><el-icon><Shop /></el-icon><span>能量商城</span></el-menu-item>
-        <el-menu-item index="/my-points"><el-icon><TrophyBase /></el-icon><span>我的能量</span></el-menu-item>
-        <el-menu-item index="/my-exchanges"><el-icon><ShoppingCart /></el-icon><span>兑换记录</span></el-menu-item>
-        <el-menu-item index="/wishlist"><el-icon><Star /></el-icon><span>星际心愿单</span></el-menu-item>
-        <el-menu-item index="/tasks"><el-icon><Aim /></el-icon><span>任务大厅</span></el-menu-item>
-        <el-sub-menu index="/admin" v-if="userStore.isAdmin()">
-          <template #title><el-icon><Setting /></el-icon><span>管理中心</span></template>
-          <el-menu-item index="/admin/users" v-if="userStore.isSuperAdmin()">用户管理</el-menu-item>
-          <el-menu-item index="/admin/thumbs">发放星辰币</el-menu-item>
-          <el-menu-item index="/admin/products" v-if="userStore.isSuperAdmin()">商品管理</el-menu-item>
-          <el-menu-item index="/admin/exchanges" v-if="userStore.isSuperAdmin()">兑换管理</el-menu-item>
-          <el-menu-item index="/admin/wishlists" v-if="userStore.isSuperAdmin()">心愿审核</el-menu-item>
-          <el-menu-item index="/admin/tasks">任务管理</el-menu-item>
-        </el-sub-menu>
-        <el-menu-item index="/help"><el-icon><QuestionFilled /></el-icon><span>航行指南</span></el-menu-item>
+
+        <!-- 宇航员菜单 -->
+        <template v-if="!userStore.isAdmin()">
+          <el-menu-item index="/dashboard"><el-icon><House /></el-icon><span>空间站控制台</span></el-menu-item>
+          <el-menu-item index="/mall"><el-icon><Shop /></el-icon><span>能量补给舱</span></el-menu-item>
+          <el-menu-item index="/my-points"><el-icon><TrophyBase /></el-icon><span>航行能量轨迹</span></el-menu-item>
+          <el-menu-item index="/my-exchanges"><el-icon><ShoppingCart /></el-icon><span>兑换发货舱</span></el-menu-item>
+          <el-menu-item index="/tasks"><el-icon><Aim /></el-icon><span>星际任务雷达</span></el-menu-item>
+          <el-menu-item index="/wishlist"><el-icon><Star /></el-icon><span>许愿发射台</span></el-menu-item>
+          <el-menu-item index="/help"><el-icon><QuestionFilled /></el-icon><span>星际航行指南</span></el-menu-item>
+        </template>
+
+        <!-- 舰长/领航员菜单 -->
+        <template v-else>
+          <el-menu-item index="/admin/dashboard"><el-icon><DataAnalysis /></el-icon><span>舰队指挥中心</span></el-menu-item>
+          <el-menu-item index="/admin/thumbs"><el-icon><Lightning /></el-icon><span>能量源控制</span></el-menu-item>
+          <el-menu-item index="/admin/task-approval"><el-icon><Checked /></el-icon><span>任务核验舱</span></el-menu-item>
+          <el-menu-item index="/admin/exchange-delivery"><el-icon><Box /></el-icon><span>补给调度室</span></el-menu-item>
+          <el-menu-item index="/admin/wishlist-approval"><el-icon><Compass /></el-icon><span>蓝图解析室</span></el-menu-item>
+          <el-menu-item index="/admin/tasks"><el-icon><Aim /></el-icon><span>任务定义管理</span></el-menu-item>
+          <template v-if="userStore.isSuperAdmin()">
+            <el-menu-item index="/admin/users"><el-icon><UserFilled /></el-icon><span>乘员编制管理</span></el-menu-item>
+            <el-menu-item index="/admin/products"><el-icon><Shop /></el-icon><span>补给物资库房</span></el-menu-item>
+            <el-menu-item index="/admin/exchanges"><el-icon><List /></el-icon><span>全站星际日志</span></el-menu-item>
+          </template>
+        </template>
+
       </el-menu>
     </el-aside>
 
     <el-container>
       <el-header class="header">
-        <!-- 移动端汉堡按钮 -->
         <el-button class="hamburger-btn" @click="drawerVisible = true" text>
           <el-icon :size="24"><Fold /></el-icon>
         </el-button>
         <div class="header-right">
+          <el-tag v-if="userStore.isSuperAdmin()" type="danger" size="small" round class="role-tag">👑 舰长</el-tag>
+          <el-tag v-else-if="userStore.isAdmin()" type="warning" size="small" round class="role-tag">🧭 领航员</el-tag>
           <span class="username">{{ userStore.userInfo?.real_name }}</span>
           <el-dropdown @command="handleCommand">
             <div class="avatar-wrap">
@@ -73,22 +85,31 @@
         class="menu drawer-menu"
         @select="drawerVisible = false"
       >
-        <el-menu-item index="/dashboard"><el-icon><House /></el-icon><span>首页</span></el-menu-item>
-        <el-menu-item index="/mall"><el-icon><Shop /></el-icon><span>能量商城</span></el-menu-item>
-        <el-menu-item index="/my-points"><el-icon><TrophyBase /></el-icon><span>我的能量</span></el-menu-item>
-        <el-menu-item index="/my-exchanges"><el-icon><ShoppingCart /></el-icon><span>兑换记录</span></el-menu-item>
-        <el-menu-item index="/wishlist"><el-icon><Star /></el-icon><span>星际心愿单</span></el-menu-item>
-        <el-menu-item index="/tasks"><el-icon><Aim /></el-icon><span>任务大厅</span></el-menu-item>
-        <el-sub-menu index="/admin" v-if="userStore.isAdmin()">
-          <template #title><el-icon><Setting /></el-icon><span>管理中心</span></template>
-          <el-menu-item index="/admin/users" v-if="userStore.isSuperAdmin()" @click="drawerVisible = false">用户管理</el-menu-item>
-          <el-menu-item index="/admin/thumbs" @click="drawerVisible = false">发放星辰币</el-menu-item>
-          <el-menu-item index="/admin/products" v-if="userStore.isSuperAdmin()" @click="drawerVisible = false">商品管理</el-menu-item>
-          <el-menu-item index="/admin/exchanges" v-if="userStore.isSuperAdmin()" @click="drawerVisible = false">兑换管理</el-menu-item>
-          <el-menu-item index="/admin/wishlists" v-if="userStore.isSuperAdmin()" @click="drawerVisible = false">心愿审核</el-menu-item>
-          <el-menu-item index="/admin/tasks" @click="drawerVisible = false">任务管理</el-menu-item>
-        </el-sub-menu>
-        <el-menu-item index="/help" @click="drawerVisible = false"><el-icon><QuestionFilled /></el-icon><span>航行指南</span></el-menu-item>
+        <!-- 宇航员菜单 -->
+        <template v-if="!userStore.isAdmin()">
+          <el-menu-item index="/dashboard" @click="drawerVisible = false"><el-icon><House /></el-icon><span>空间站控制台</span></el-menu-item>
+          <el-menu-item index="/mall" @click="drawerVisible = false"><el-icon><Shop /></el-icon><span>能量补给舱</span></el-menu-item>
+          <el-menu-item index="/my-points" @click="drawerVisible = false"><el-icon><TrophyBase /></el-icon><span>航行能量轨迹</span></el-menu-item>
+          <el-menu-item index="/my-exchanges" @click="drawerVisible = false"><el-icon><ShoppingCart /></el-icon><span>兑换发货舱</span></el-menu-item>
+          <el-menu-item index="/tasks" @click="drawerVisible = false"><el-icon><Aim /></el-icon><span>星际任务雷达</span></el-menu-item>
+          <el-menu-item index="/wishlist" @click="drawerVisible = false"><el-icon><Star /></el-icon><span>许愿发射台</span></el-menu-item>
+          <el-menu-item index="/help" @click="drawerVisible = false"><el-icon><QuestionFilled /></el-icon><span>星际航行指南</span></el-menu-item>
+        </template>
+
+        <!-- 舰长/领航员菜单 -->
+        <template v-else>
+          <el-menu-item index="/admin/dashboard" @click="drawerVisible = false"><el-icon><DataAnalysis /></el-icon><span>舰队指挥中心</span></el-menu-item>
+          <el-menu-item index="/admin/thumbs" @click="drawerVisible = false"><el-icon><Lightning /></el-icon><span>能量源控制</span></el-menu-item>
+          <el-menu-item index="/admin/task-approval" @click="drawerVisible = false"><el-icon><Checked /></el-icon><span>任务核验舱</span></el-menu-item>
+          <el-menu-item index="/admin/exchange-delivery" @click="drawerVisible = false"><el-icon><Box /></el-icon><span>补给调度室</span></el-menu-item>
+          <el-menu-item index="/admin/wishlist-approval" @click="drawerVisible = false"><el-icon><Compass /></el-icon><span>蓝图解析室</span></el-menu-item>
+          <el-menu-item index="/admin/tasks" @click="drawerVisible = false"><el-icon><Aim /></el-icon><span>任务定义管理</span></el-menu-item>
+          <template v-if="userStore.isSuperAdmin()">
+            <el-menu-item index="/admin/users" @click="drawerVisible = false"><el-icon><UserFilled /></el-icon><span>乘员编制管理</span></el-menu-item>
+            <el-menu-item index="/admin/products" @click="drawerVisible = false"><el-icon><Shop /></el-icon><span>补给物资库房</span></el-menu-item>
+            <el-menu-item index="/admin/exchanges" @click="drawerVisible = false"><el-icon><List /></el-icon><span>全站星际日志</span></el-menu-item>
+          </template>
+        </template>
       </el-menu>
     </div>
   </el-drawer>
@@ -96,28 +117,25 @@
   <!-- 个人中心弹窗 -->
   <el-dialog v-model="profileVisible" title="👨‍🚀 个人中心" width="480px" :border-radius="20" class="profile-dialog">
     <div class="profile-body">
-      <!-- 当前头像大图 -->
       <div class="current-avatar-wrap">
         <div class="current-avatar">
           <span v-if="!avatarIsUrl" class="current-avatar-emoji">{{ avatarEmoji }}</span>
           <el-avatar v-else :size="90" :src="userStore.userInfo?.avatar" />
         </div>
         <div class="profile-name">{{ userStore.userInfo?.real_name }}</div>
-        <el-tag :type="userStore.isAdmin() ? 'danger' : 'primary'" size="small" round>
-          {{ userStore.isAdmin() ? '⚙️ 管理员' : '🚀 飞行员' }}
+        <el-tag :type="userStore.isSuperAdmin() ? 'danger' : userStore.isAdmin() ? 'warning' : 'primary'" size="small" round>
+          {{ userStore.isSuperAdmin() ? '👑 舰长' : userStore.isAdmin() ? '🧭 领航员' : '🚀 宇航员' }}
         </el-tag>
       </div>
 
-      <!-- 账号信息 -->
       <el-descriptions :column="1" size="small" border class="profile-info">
         <el-descriptions-item label="用户名">{{ userStore.userInfo?.username }}</el-descriptions-item>
         <el-descriptions-item label="邮箱">{{ userStore.userInfo?.email || '未设置' }}</el-descriptions-item>
         <el-descriptions-item label="手机">{{ userStore.userInfo?.phone || '未设置' }}</el-descriptions-item>
-        <el-descriptions-item label="总能量">{{ userStore.userInfo?.total_points ?? 0 }} ⚡</el-descriptions-item>
-        <el-descriptions-item label="可用能量">{{ userStore.userInfo?.available_points ?? 0 }} ⚡</el-descriptions-item>
+        <el-descriptions-item v-if="!userStore.isAdmin()" label="总能量">{{ userStore.userInfo?.total_points ?? 0 }} ⚡</el-descriptions-item>
+        <el-descriptions-item v-if="!userStore.isAdmin()" label="可用能量">{{ userStore.userInfo?.available_points ?? 0 }} ⚡</el-descriptions-item>
       </el-descriptions>
 
-      <!-- 选择头像 -->
       <div class="avatar-section">
         <div class="avatar-section-title">更换头像</div>
         <div class="preset-avatars">
@@ -157,7 +175,10 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { House, Shop, TrophyBase, ShoppingCart, Setting, Star, Fold, QuestionFilled, Upload, Aim } from '@element-plus/icons-vue'
+import {
+  House, Shop, TrophyBase, ShoppingCart, Star, Fold, QuestionFilled, Upload, Aim,
+  DataAnalysis, Checked, Box, Compass, UserFilled, List, Lightning
+} from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
 
@@ -166,8 +187,6 @@ const router = useRouter()
 const userStore = useUserStore()
 const drawerVisible = ref(false)
 const profileVisible = ref(false)
-
-// isSuperAdmin 从 store 直接可用，模板中通过 userStore.isSuperAdmin() 调用
 
 const activeMenu = computed(() => route.path)
 
@@ -293,43 +312,6 @@ const handleCommand = (command) => {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
-.menu :deep(.el-sub-menu__title) {
-  color: rgba(255, 255, 255, 0.85);
-  border-radius: 12px;
-  margin: 4px 8px;
-  height: 46px;
-  font-size: 15px;
-}
-
-.menu :deep(.el-sub-menu__title:hover) {
-  color: white;
-  background: rgba(255, 255, 255, 0.25) !important;
-}
-
-.menu :deep(.el-menu--inline) {
-  background: rgba(0, 0, 0, 0.1) !important;
-  border-radius: 12px;
-  margin: 4px 8px;
-}
-
-.menu :deep(.el-menu--inline .el-menu-item) {
-  background: transparent !important;
-  color: rgba(255, 255, 255, 0.8);
-  margin: 2px 4px;
-  border-radius: 10px;
-}
-
-.menu :deep(.el-menu--inline .el-menu-item:hover) {
-  background: rgba(255, 255, 255, 0.2) !important;
-  color: white;
-}
-
-.menu :deep(.el-menu--inline .el-menu-item.is-active) {
-  background: white !important;
-  color: #7B68EE;
-  font-weight: bold;
-}
-
 .header {
   background: white;
   display: flex;
@@ -350,9 +332,11 @@ const handleCommand = (command) => {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 10px;
   margin-left: auto;
 }
+
+.role-tag { flex-shrink: 0; }
 
 .username {
   font-size: 15px;
@@ -360,7 +344,6 @@ const handleCommand = (command) => {
   font-weight: 600;
 }
 
-/* 头像区域 */
 .avatar-wrap {
   width: 36px;
   height: 36px;
@@ -383,7 +366,6 @@ const handleCommand = (command) => {
   background: #FFF8F0;
 }
 
-/* Drawer */
 .drawer-inner {
   height: 100%;
   background: linear-gradient(180deg, #7B68EE 0%, #9B59B6 50%, #8E44AD 100%);
@@ -392,7 +374,7 @@ const handleCommand = (command) => {
 }
 .drawer-menu { flex: 1; overflow-y: auto; }
 
-/* ===== 个人中心弹窗 ===== */
+/* 个人中心弹窗 */
 .profile-body { padding: 0 4px; }
 
 .current-avatar-wrap {
@@ -471,7 +453,6 @@ const handleCommand = (command) => {
 }
 .upload-tip { font-size: 12px; color: #bbb; }
 
-/* 移动端 */
 @media (max-width: 768px) {
   .desktop-sidebar { display: none !important; }
   .hamburger-btn {
@@ -481,6 +462,5 @@ const handleCommand = (command) => {
   }
   .main-content { padding: 12px; }
   .menu :deep(.el-menu-item) { height: 52px; }
-  .menu :deep(.el-sub-menu__title) { height: 52px; }
 }
 </style>
