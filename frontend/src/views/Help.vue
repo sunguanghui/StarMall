@@ -66,7 +66,44 @@
           </div>
         </el-col>
       </el-row>
-      <p class="desc-text" style="margin-top:14px">底部趋势图展示你近期累计能量的增长曲线 📈</p>
+      <p class="desc-text" style="margin-top:14px">底部趋势图展示近期累计能量增长曲线 📈；下方「飞船改造舱」展示飞船等级、碎片收集进度和连击天数。</p>
+    </el-card>
+
+    <!-- 飞船碎片 & 连击系统 -->
+    <el-card class="section-card" id="section-ship">
+      <template #header><div class="section-header">🛸 飞船碎片 & 连击系统</div></template>
+      <el-collapse accordion>
+        <el-collapse-item title="飞船碎片掉落" name="fragments">
+          <p class="desc-text">每次管理员审批通过打卡时，系统有 <b>30% 的概率</b>随机掉落一枚飞船碎片：</p>
+          <el-table :data="fragmentData" border size="small">
+            <el-table-column prop="icon" label="图标" width="60" />
+            <el-table-column prop="part" label="碎片类型" width="110" />
+            <el-table-column prop="desc" label="说明" />
+          </el-table>
+        </el-collapse-item>
+        <el-collapse-item title="飞船升级" name="ship-upgrade">
+          <ol class="step-list">
+            <li>集齐引擎🔧、雷达📡、船体🛡️ 碎片各至少 1 枚</li>
+            <li>在首页「飞船改造舱」点击「立即升级飞船」</li>
+            <li>消耗各 1 枚碎片，飞船等级 +1，图标随等级升阶</li>
+          </ol>
+          <el-alert type="info" :closable="false" style="margin-top:8px">
+            <template #title>碎片不足时按钮自动禁用，继续完成任务积累即可。</template>
+          </el-alert>
+        </el-collapse-item>
+        <el-collapse-item title="连击系统" name="streak">
+          <el-table :data="streakData" border size="small" style="margin-bottom:10px">
+            <el-table-column prop="cond" label="情况" width="200" />
+            <el-table-column prop="result" label="效果" />
+          </el-table>
+          <el-alert type="success" :closable="false">
+            <template #title>每连续完成 7 天任务触发「星云爆发」：自动额外奖励 +10 能量并写入流水记录。</template>
+          </el-alert>
+        </el-collapse-item>
+        <el-collapse-item title="能量衰减" name="decay">
+          <p class="desc-text">系统每日凌晨 00:05 自动检查：普通用户连续 <b>3 天</b>未完成任务（无审批通过记录），自动扣除 1 点可用能量并写入流水记录。保持活跃即可避免衰减。</p>
+        </el-collapse-item>
+      </el-collapse>
     </el-card>
 
     <!-- 能量商城 -->
@@ -177,7 +214,7 @@
         <el-collapse-item title="8.1 用户管理（仅舰长）" name="admin-users">
           <p>路径：管理中心 → 用户管理。可新增、编辑、重置密码，支持为任意用户设置头像。支持用户名/姓名关键词搜索。创建管理员账号时可勾选「超级管理员」开关（需舰长权限）。</p>
         </el-collapse-item>
-        <el-collapse-item title="8.2 发放星辰币" name="admin-thumbs">
+        <el-collapse-item title="8.2 发放星辰币 & 后悔药" name="admin-thumbs">
           <el-table :data="thumbTypeData" border size="small" style="margin-bottom:10px">
             <el-table-column prop="type" label="类型" width="130" />
             <el-table-column prop="points" label="能量变化" width="90" />
@@ -191,7 +228,7 @@
             <li>点击「发放」完成操作；每笔记录关联「赋能官 ✨」审计信息</li>
           </ol>
           <el-alert type="warning" :closable="false" style="margin-top:8px">
-            <template #title>可用能量最低扣至0，不会产生负债。</template>
+            <template #title>可用能量最低扣至0，不会产生负债。发放后 <b>15 分钟内</b>可点击记录行的「后悔药」按钮撤销，能量自动恢复。</template>
           </el-alert>
         </el-collapse-item>
         <el-collapse-item title="8.3 商品管理（仅舰长）" name="admin-products">
@@ -212,8 +249,8 @@
           <p><b>拒绝</b>：状态变为「已拒绝」，不创建任何商品。</p>
         </el-collapse-item>
         <el-collapse-item title="8.6 任务管理" name="admin-tasks">
-          <p><b>任务管理</b>：可新增、编辑任务，设置任务名称、类型（每日/里程碑）、奖励能量；舰长还可指定专属审批人，不指定则所有舰长均可审批。</p>
-          <p><b>打卡审批</b>：在「待审核打卡」列表中批准或驳回飞行员的打卡申请。批准后自动发放能量。</p>
+          <p><b>任务定义管理</b>：可新增、编辑任务，设置名称、类型（每日/里程碑）、奖励能量；舰长还可指定专属审批人，不指定则所有舰长均可审批。</p>
+          <p><b>任务核验舱</b>：审批宇航员打卡申请。批准后自动发放能量，并有 30% 概率触发飞船碎片掉落，连续完成 7 天触发「星云爆发」+10 能量奖励。</p>
           <el-alert type="info" :closable="false" style="margin-top:8px">
             <template #title>领航员只能看到自己创建的任务和自己负责审批的打卡记录。</template>
           </el-alert>
@@ -240,6 +277,7 @@ const navItems = [
   { id: 'section-energy',    icon: '⚡', label: '能量说明' },
   { id: 'section-account',   icon: '👨‍🚀', label: '账号管理' },
   { id: 'section-dashboard', icon: '🏠', label: '首页' },
+  { id: 'section-ship',      icon: '🛸', label: '飞船碎片' },
   { id: 'section-mall',      icon: '🛒', label: '能量商城' },
   { id: 'section-points',    icon: '⭐', label: '我的能量' },
   { id: 'section-exchanges', icon: '📦', label: '兑换记录' },
@@ -312,6 +350,19 @@ const taskStatusData = [
   { status: '已驳回', meaning: '管理员驳回了本次打卡申请' },
 ]
 
+const fragmentData = [
+  { icon: '🔧', part: '引擎碎片', desc: '随机掉落，集满1枚可参与飞船升级' },
+  { icon: '📡', part: '雷达碎片', desc: '随机掉落，集满1枚可参与飞船升级' },
+  { icon: '🛡️', part: '船体碎片', desc: '随机掉落，集满1枚可参与飞船升级' },
+]
+
+const streakData = [
+  { cond: '今日首次打卡被审批通过', result: '连击天数 +1，更新最后活跃日期' },
+  { cond: '同一天多次打卡通过', result: '连击天数不重复累加' },
+  { cond: '中断超过1天', result: '连击天数重置为1' },
+  { cond: '累计满7天（7、14、21…）', result: '触发「星云爆发」额外奖励 +10 能量' },
+]
+
 const thumbTypeData = [
   { type: '单星辰币', points: '+1', desc: '普通表扬鼓励' },
   { type: '双星辰币', points: '+5', desc: '优秀表现奖励' },
@@ -342,17 +393,27 @@ const faqData = [
   { q: '我的可用能量被扣到0了，还会继续扣吗？',
     a: '不会。系统设有保护机制，可用能量最低为0，不会变为负数，但流水记录会保留实际扣除值。' },
   { q: '已完成的兑换可以退吗？',
-    a: '只有管理员可以在「兑换管理」页面取消已完成的兑换，取消后能量全额退回，库存也会恢复。' },
+    a: '只有管理员可以在「补给调度室」取消已完成的兑换，取消后能量全额退回，库存也会恢复。' },
   { q: '修改密码后为什么被强制退出了？',
     a: '修改密码是安全操作，完成后系统会清除当前登录状态，需用新密码重新登录。' },
   { q: '商品为什么不能删除？',
     a: '若该商品存在任何兑换历史记录，系统会拒绝删除以保护完整历史。可将其下架代替删除。' },
   { q: '普通管理员（领航员）登录后看不到任务？',
-    a: '领航员只能看到自己创建的任务。需由舰长创建任务并将其指定为审批人，或领航员自行在任务管理中新建任务。' },
+    a: '领航员只能看到自己创建的任务。需由舰长创建任务并将其指定为审批人，或领航员自行在任务定义管理中新建任务。' },
   { q: '任务打卡后没有发放能量？',
-    a: '打卡提交后处于「审核中」状态，需等待管理员审批通过才会发放能量。请在「我的记录」中查看审批进度。' },
+    a: '打卡提交后处于「审核中」状态，需等待管理员在「任务核验舱」审批通过才会发放能量。' },
   { q: '每日日常任务今天已经打过卡了，还能再打吗？',
     a: '不能。每日日常任务每人每天限打卡1次，系统会自动拦截重复提交。阶段里程碑任务无此限制。' },
+  { q: '飞船碎片怎么获得？',
+    a: '每次管理员审批通过打卡时，系统有30%的概率随机掉落一枚引擎🔧、雷达📡或船体🛡️碎片，在首页「飞船改造舱」可以看到收集进度。' },
+  { q: '飞船升级有什么用？',
+    a: '飞船等级提升后首页驾驶舱图标会随之升阶变化，目前作为成就展示。升级需消耗三种碎片各1枚。' },
+  { q: '「星云爆发」是什么？',
+    a: '连续完成任务（每天至少有一笔打卡被审批通过）累计满7天时，系统自动额外奖励+10能量，并在流水中显示「星云爆发！」记录。' },
+  { q: '能量为什么突然少了1点？',
+    a: '若连续3天没有任务被审批通过，系统每天凌晨自动扣除1点能量（衰减保护机制）。保持活跃完成任务即可避免。' },
+  { q: '发错了星辰币怎么办？',
+    a: '管理员在「发放星辰币」页面的记录列表中，可以对15分钟内的记录点击「后悔药」按钮撤销，系统会原子性地回滚能量。' },
 ]
 </script>
 
