@@ -28,6 +28,16 @@
               </el-input>
             </el-form-item>
 
+            <el-form-item label="音箱端口">
+              <el-input-number
+                v-model="form.speaker_port"
+                :min="1"
+                :max="65535"
+                style="width: 100%"
+              />
+              <div class="form-tip">WebSocket 服务端口，默认 18888</div>
+            </el-form-item>
+
             <el-form-item label="心跳间隔（秒）">
               <el-input-number
                 v-model="form.heartbeat_interval"
@@ -185,6 +195,7 @@ const userList = ref([])
 
 const form = ref({
   speaker_ip: '',
+  speaker_port: 18888,
   heartbeat_interval: 10,
   enable_broadcast: false,
   enable_timed_broadcast: false,

@@ -14,15 +14,18 @@ class SpeakerClient:
         self._heartbeat_timer = None
         self._running = False
         self._speaker_ip = ''
+        self._speaker_port = 18888
         self._heartbeat_interval = 10
         self._reconnect_delay = 3
         self._max_reconnect_delay = 60
 
-    def configure(self, speaker_ip, heartbeat_interval=10):
+    def configure(self, speaker_ip, heartbeat_interval=10, speaker_port=18888):
         old_ip = self._speaker_ip
+        old_port = self._speaker_port
         self._speaker_ip = speaker_ip
+        self._speaker_port = int(speaker_port) if speaker_port else 18888
         self._heartbeat_interval = max(1, int(heartbeat_interval))
-        if old_ip != speaker_ip and self._running:
+        if (old_ip != speaker_ip or old_port != self._speaker_port) and self._running:
             self._disconnect()
             if speaker_ip:
                 self._schedule_connect(1)
@@ -38,7 +41,7 @@ class SpeakerClient:
         self._disconnect()
 
     def _get_url(self):
-        return f'ws://{self._speaker_ip}:18888/ws/status'
+        return f'ws://{self._speaker_ip}:{self._speaker_port}/ws/status'
 
     def _schedule_connect(self, delay):
         t = threading.Timer(delay, self._connect_loop)

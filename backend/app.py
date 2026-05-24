@@ -1605,6 +1605,8 @@ def update_settings():
 
     if 'speaker_ip' in data:
         settings.speaker_ip = data['speaker_ip'].strip()
+    if 'speaker_port' in data:
+        settings.speaker_port = max(1, min(65535, int(data['speaker_port'] or 18888)))
     if 'heartbeat_interval' in data:
         settings.heartbeat_interval = max(1, int(data['heartbeat_interval']))
     if 'enable_broadcast' in data:
@@ -1620,11 +1622,14 @@ def update_settings():
 
     db.session.commit()
 
-    # 重新配置音箱客户端
+    # 重新配置音箱客户端并启动连接
     speaker_client.configure(
         speaker_ip=settings.speaker_ip,
-        heartbeat_interval=settings.heartbeat_interval
+        heartbeat_interval=settings.heartbeat_interval,
+        speaker_port=settings.speaker_port or 18888
     )
+    if settings.speaker_ip:
+        speaker_client.start()
 
     # 动态刷新定时播报任务
     _reschedule_broadcast_jobs(settings)
@@ -1645,11 +1650,18 @@ def test_broadcast():
     if not settings or not settings.speaker_ip:
         return jsonify({'code': 400, 'message': '请先配置音箱 IP 地址'}), 400
 
-    ok = speaker_client.send_text('叮咚！这是来自星途补给站的测试广播，音箱连接正常，一切就绪！')
-    if ok:
-        return jsonify({'code': 200, 'message': '测试广播已发送'})
-    else:
-        return jsonify({'code': 503, 'message': '音箱未连接，请检查 IP 和网络'}), 503
+    # 确保客户端已启动
+    speaker_client.start()
+
+    # 等待连接就绪，最多 5 秒
+    import time as _time
+    for _ in range(10):
+        ok = speaker_client.send_text('叮咚！这是来自星途补给站的测试广播，音箱连接正常，一切就绪！')
+        if ok:
+            return jsonify({'code': 200, 'message': '测试广播已发送'})
+        _time.sleep(0.5)
+
+    return jsonify({'code': 503, 'message': '音箱未连接，请检查 IP 和网络'}), 503
 
 
 # ==================== 定时任务 ====================
@@ -1845,7 +1857,8 @@ def _init_app():
         if settings and settings.speaker_ip:
             speaker_client.configure(
                 speaker_ip=settings.speaker_ip,
-                heartbeat_interval=settings.heartbeat_interval or 10
+                heartbeat_interval=settings.heartbeat_interval or 10,
+                speaker_port=settings.speaker_port or 18888
             )
             speaker_client.start()
 

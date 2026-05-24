@@ -268,6 +268,7 @@ class SystemSettings(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     speaker_ip = db.Column(db.String(64), default='')
+    speaker_port = db.Column(db.Integer, default=18888)
     heartbeat_interval = db.Column(db.Integer, default=10)
     enable_broadcast = db.Column(db.Boolean, default=False)
     enable_timed_broadcast = db.Column(db.Boolean, default=False)
@@ -280,6 +281,7 @@ class SystemSettings(db.Model):
         return {
             'id': self.id,
             'speaker_ip': self.speaker_ip or '',
+            'speaker_port': self.speaker_port or 18888,
             'heartbeat_interval': self.heartbeat_interval or 10,
             'enable_broadcast': self.enable_broadcast or False,
             'enable_timed_broadcast': self.enable_timed_broadcast or False,
