@@ -12,7 +12,6 @@
         <el-menu-item index="/my-exchanges"><el-icon><ShoppingCart /></el-icon><span>兑换记录</span></el-menu-item>
         <el-menu-item index="/wishlist"><el-icon><Star /></el-icon><span>星际心愿单</span></el-menu-item>
         <el-menu-item index="/tasks"><el-icon><Aim /></el-icon><span>任务大厅</span></el-menu-item>
-        <el-menu-item index="/help"><el-icon><QuestionFilled /></el-icon><span>航行指南</span></el-menu-item>
         <el-sub-menu index="/admin" v-if="userStore.isAdmin()">
           <template #title><el-icon><Setting /></el-icon><span>管理中心</span></template>
           <el-menu-item index="/admin/users" v-if="userStore.isSuperAdmin()">用户管理</el-menu-item>
@@ -22,6 +21,7 @@
           <el-menu-item index="/admin/wishlists" v-if="userStore.isSuperAdmin()">心愿审核</el-menu-item>
           <el-menu-item index="/admin/tasks">任务管理</el-menu-item>
         </el-sub-menu>
+        <el-menu-item index="/help"><el-icon><QuestionFilled /></el-icon><span>航行指南</span></el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -79,7 +79,6 @@
         <el-menu-item index="/my-exchanges"><el-icon><ShoppingCart /></el-icon><span>兑换记录</span></el-menu-item>
         <el-menu-item index="/wishlist"><el-icon><Star /></el-icon><span>星际心愿单</span></el-menu-item>
         <el-menu-item index="/tasks"><el-icon><Aim /></el-icon><span>任务大厅</span></el-menu-item>
-        <el-menu-item index="/help" @click="drawerVisible = false"><el-icon><QuestionFilled /></el-icon><span>航行指南</span></el-menu-item>
         <el-sub-menu index="/admin" v-if="userStore.isAdmin()">
           <template #title><el-icon><Setting /></el-icon><span>管理中心</span></template>
           <el-menu-item index="/admin/users" v-if="userStore.isSuperAdmin()" @click="drawerVisible = false">用户管理</el-menu-item>
@@ -89,6 +88,7 @@
           <el-menu-item index="/admin/wishlists" v-if="userStore.isSuperAdmin()" @click="drawerVisible = false">心愿审核</el-menu-item>
           <el-menu-item index="/admin/tasks" @click="drawerVisible = false">任务管理</el-menu-item>
         </el-sub-menu>
+        <el-menu-item index="/help" @click="drawerVisible = false"><el-icon><QuestionFilled /></el-icon><span>航行指南</span></el-menu-item>
       </el-menu>
     </div>
   </el-drawer>

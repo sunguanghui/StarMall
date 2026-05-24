@@ -1,8 +1,42 @@
 <template>
   <router-view />
+  <!-- PWA 安装提示横幅 -->
+  <div v-if="showInstallBanner" class="pwa-install-banner">
+    <span>📱 添加「星途补给站」到主屏幕，享受更好体验！</span>
+    <div class="pwa-banner-btns">
+      <button class="pwa-btn-install" @click="installPWA">立即安装</button>
+      <button class="pwa-btn-dismiss" @click="dismissBanner">稍后再说</button>
+    </div>
+  </div>
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+
+const showInstallBanner = ref(false)
+let deferredPrompt = null
+
+onMounted(() => {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault()
+    deferredPrompt = e
+    showInstallBanner.value = true
+  })
+})
+
+const installPWA = async () => {
+  if (!deferredPrompt) return
+  deferredPrompt.prompt()
+  const { outcome } = await deferredPrompt.userChoice
+  if (outcome === 'accepted') {
+    showInstallBanner.value = false
+  }
+  deferredPrompt = null
+}
+
+const dismissBanner = () => {
+  showInstallBanner.value = false
+}
 </script>
 
 <style>
@@ -75,6 +109,52 @@ body {
 .mobile-drawer .el-drawer__body {
   padding: 0 !important;
   overflow: hidden;
+}
+
+/* PWA 安装横幅 */
+.pwa-install-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #7B68EE, #FF6B9D);
+  color: white;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 9999;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  font-size: 14px;
+  flex-wrap: wrap;
+}
+
+.pwa-banner-btns {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pwa-btn-install {
+  background: white;
+  color: #7B68EE;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pwa-btn-dismiss {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px;
+  cursor: pointer;
 }
 </style>
 

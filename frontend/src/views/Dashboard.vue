@@ -70,9 +70,9 @@
               <el-button text @click="$router.push('/my-points')">查看更多</el-button>
             </div>
           </template>
-          <div class="table-wrapper">
+          <!-- 桌面端：表格 -->
+          <div class="table-wrapper desktop-table">
             <el-table :data="recentThumbs" style="width: 100%" v-loading="thumbsLoading">
-              <!-- 管理员视角：显示被操作对象 -->
               <el-table-column v-if="isAdmin" prop="user_name" label="被操作人" width="85" show-overflow-tooltip />
               <el-table-column prop="thumb_type_name" label="类型" width="115" show-overflow-tooltip />
               <el-table-column label="能量" width="55">
@@ -81,10 +81,25 @@
                 </template>
               </el-table-column>
               <el-table-column prop="reason" label="原因" min-width="40" show-overflow-tooltip />
-              <!-- 普通用户视角：显示操作人 -->
               <el-table-column v-if="!isAdmin" prop="given_by_name" label="操作人" width="100" show-overflow-tooltip />
               <el-table-column prop="created_at" label="时间" width="155" />
             </el-table>
+          </div>
+          <!-- 移动端：卡片列表 -->
+          <div class="mobile-list" v-loading="thumbsLoading">
+            <div v-for="item in recentThumbs" :key="item.id" class="mobile-list-item">
+              <div class="mobile-item-row">
+                <span class="mobile-item-label">{{ item.thumb_type_name }}</span>
+                <span :class="['mobile-item-points', { 'negative-points': item.points < 0 }]">{{ item.points > 0 ? '+' : '' }}{{ item.points }} ⚡</span>
+              </div>
+              <div class="mobile-item-row secondary">
+                <span v-if="isAdmin">{{ item.user_name }}</span>
+                <span v-else>{{ item.given_by_name }}</span>
+                <span>{{ item.reason }}</span>
+                <span class="mobile-item-time">{{ item.created_at?.slice(0, 10) }}</span>
+              </div>
+            </div>
+            <div v-if="!thumbsLoading && recentThumbs.length === 0" class="mobile-empty">暂无记录</div>
           </div>
         </el-card>
       </el-col>
@@ -97,9 +112,9 @@
               <el-button text @click="$router.push('/my-exchanges')">查看更多</el-button>
             </div>
           </template>
-          <div class="table-wrapper">
+          <!-- 桌面端：表格 -->
+          <div class="table-wrapper desktop-table">
             <el-table :data="recentExchanges" style="width: 100%" v-loading="exchangesLoading">
-              <!-- 管理员视角：显示兑换人 -->
               <el-table-column v-if="isAdmin" prop="user_name" label="兑换人" width="70" show-overflow-tooltip />
               <el-table-column prop="product_name" label="商品" min-width="50" show-overflow-tooltip />
               <el-table-column prop="points_spent" label="能量" width="65" :resizable="false">
@@ -116,6 +131,21 @@
               </el-table-column>
               <el-table-column prop="created_at" label="时间" width="155" />
             </el-table>
+          </div>
+          <!-- 移动端：卡片列表 -->
+          <div class="mobile-list" v-loading="exchangesLoading">
+            <div v-for="item in recentExchanges" :key="item.id" class="mobile-list-item">
+              <div class="mobile-item-row">
+                <span class="mobile-item-label">{{ item.product_name }}</span>
+                <el-tag :type="getStatusType(item.status)" size="small">{{ item.status_name }}</el-tag>
+              </div>
+              <div class="mobile-item-row secondary">
+                <span v-if="isAdmin">{{ item.user_name }}</span>
+                <span>{{ item.points_spent }} ⚡</span>
+                <span class="mobile-item-time">{{ item.created_at?.slice(0, 10) }}</span>
+              </div>
+            </div>
+            <div v-if="!exchangesLoading && recentExchanges.length === 0" class="mobile-empty">暂无记录</div>
           </div>
         </el-card>
       </el-col>
@@ -516,6 +546,64 @@ onBeforeUnmount(() => {
   overflow-x: auto;
   max-height: 220px;
   overflow-y: auto;
+}
+
+/* 移动端：隐藏表格，显示卡片列表 */
+.desktop-table { display: block; }
+.mobile-list { display: none; }
+
+@media (max-width: 768px) {
+  .desktop-table { display: none; }
+  .mobile-list { display: block; }
+}
+
+.mobile-list-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f0ff;
+}
+.mobile-list-item:last-child { border-bottom: none; }
+
+.mobile-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mobile-item-row.secondary {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #999;
+}
+
+.mobile-item-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-item-points {
+  font-size: 14px;
+  font-weight: 700;
+  color: #FF6B9D;
+  flex-shrink: 0;
+}
+
+.mobile-item-time {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.mobile-empty {
+  text-align: center;
+  color: #ccc;
+  padding: 20px 0;
+  font-size: 13px;
 }
 
 .card-header {

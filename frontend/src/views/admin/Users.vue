@@ -20,6 +20,7 @@
         </el-form-item>
       </el-form>
 
+      <div class="table-scroll-wrapper">
       <el-table :data="users" style="width: 100%" v-loading="loading">
         <el-table-column label="头像" width="70">
           <template #default="{ row }">
@@ -50,6 +51,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <el-pagination
         v-if="total > 0"
@@ -165,7 +167,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Upload } from '@element-plus/icons-vue'
 import api from '@/utils/api'
@@ -218,11 +220,11 @@ const form = reactive({
   avatar: 'preset_1'
 })
 
-const rules = {
+const rules = computed(() => ({
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  password: form.id ? [] : [{ required: true, message: '请输入密码', trigger: 'blur' }],
   real_name: [{ required: true, message: '请输入姓名', trigger: 'blur' }]
-}
+}))
 
 const loadUsers = async () => {
   loading.value = true
@@ -290,7 +292,9 @@ const handleSubmit = async () => {
     submitting.value = true
     try {
       if (form.id) {
-        await api.put(`/users/${form.id}`, form)
+        const payload = { ...form }
+        if (!payload.password) delete payload.password
+        await api.put(`/users/${form.id}`, payload)
         ElMessage.success('更新成功')
       } else {
         await api.post('/users', form)
@@ -419,5 +423,10 @@ onMounted(() => { loadUsers() })
   border-color: #FF6B9D;
   background: #fff0f5;
   box-shadow: 0 0 0 3px rgba(255,107,157,0.2);
+}
+
+.table-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 </style>

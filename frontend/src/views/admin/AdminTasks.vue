@@ -11,6 +11,7 @@
         </div>
       </template>
 
+      <div class="table-scroll-wrapper">
       <el-table :data="tasks" v-loading="tasksLoading" style="width:100%">
         <el-table-column prop="title" label="任务名称" min-width="160" show-overflow-tooltip />
         <el-table-column prop="type_name" label="类型" width="120">
@@ -42,6 +43,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
     </el-card>
 
     <!-- 审核队列 -->
@@ -58,6 +60,7 @@
         </div>
       </template>
 
+      <div class="table-scroll-wrapper">
       <el-table :data="logs" v-loading="logsLoading" style="width:100%">
         <el-table-column prop="user_name" label="飞行员" width="100" />
         <el-table-column prop="task_title" label="任务名称" min-width="150" show-overflow-tooltip />
@@ -93,6 +96,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <el-pagination
         v-if="logsTotal > 0"
@@ -185,7 +189,7 @@ const loadTasks = async () => {
   tasksLoading.value = true
   try {
     const res = await api.get('/tasks', { params: { include_inactive: true } })
-    tasks.value = res.data.data
+    tasks.value = res.data || []
   } catch { ElMessage.error('加载任务失败') }
   finally { tasksLoading.value = false }
 }
@@ -196,8 +200,8 @@ const loadLogs = async () => {
     const params = { page: logsPage.value, per_page: logsPageSize.value }
     if (filterStatus.value) params.status = filterStatus.value
     const res = await api.get('/task-logs', { params })
-    logs.value = res.data.data.list
-    logsTotal.value = res.data.data.total
+    logs.value = res.data?.list || []
+    logsTotal.value = res.data?.total || 0
   } catch { ElMessage.error('加载记录失败') }
   finally { logsLoading.value = false }
 }
@@ -292,4 +296,8 @@ onMounted(() => {
 .pagination { margin-top: 20px; display: flex; justify-content: flex-end; }
 .text-muted { color: #ccc; font-size: 13px; }
 .form-tip { font-size: 12px; color: #aaa; margin-top: 4px; }
+.table-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 </style>

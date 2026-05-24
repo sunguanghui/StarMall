@@ -139,7 +139,7 @@ const loadTasks = async () => {
   loading.value = true
   try {
     const res = await api.get('/tasks')
-    tasks.value = res.data.data
+    tasks.value = res.data || []
   } catch {
     ElMessage.error('加载任务失败')
   } finally {
@@ -151,8 +151,8 @@ const loadMyLogs = async () => {
   logsLoading.value = true
   try {
     const res = await api.get('/task-logs', { params: { page: logsPage.value, per_page: logsPageSize.value } })
-    myLogs.value = res.data.data.list
-    logsTotal.value = res.data.data.total
+    myLogs.value = res.data?.list || []
+    logsTotal.value = res.data?.total || 0
   } catch {
     ElMessage.error('加载记录失败')
   } finally {
