@@ -24,7 +24,7 @@
                 placeholder="例：192.168.1.10"
                 clearable
               >
-                <template #prefix><el-icon><Wifi /></el-icon></template>
+                <template #prefix><el-icon><Monitor /></el-icon></template>
               </el-input>
             </el-form-item>
 
@@ -47,7 +47,7 @@
             @click="handleTestBroadcast"
             style="width: 100%"
           >
-            <el-icon><Microphone /></el-icon>
+            <el-icon><Mic /></el-icon>
             发送测试广播
           </el-button>
         </el-card>
@@ -176,7 +176,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Connection, Bell, AlarmClock, Microphone, Wifi } from '@element-plus/icons-vue'
+import { Connection, Bell, AlarmClock, Mic, Monitor } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 
 const saveLoading = ref(false)
