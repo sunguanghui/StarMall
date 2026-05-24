@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -19,6 +19,10 @@ class User(db.Model):
     is_super_admin = db.Column(db.Boolean, nullable=False, default=False)
     total_points = db.Column(db.Integer, default=0)
     available_points = db.Column(db.Integer, default=0)
+    fragments = db.Column(db.JSON, default=lambda: {'engine': 0, 'radar': 0, 'hull': 0})
+    ship_level = db.Column(db.Integer, default=1)
+    streak_days = db.Column(db.Integer, default=0)
+    last_active_date = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -44,6 +48,9 @@ class User(db.Model):
             'is_super_admin': self.is_super_admin,
             'total_points': self.total_points,
             'available_points': self.available_points,
+            'fragments': self.fragments or {'engine': 0, 'radar': 0, 'hull': 0},
+            'ship_level': self.ship_level or 1,
+            'streak_days': self.streak_days or 0,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
 
@@ -60,6 +67,7 @@ class ThumbsRecord(db.Model):
     parent_message = db.Column(db.Text)
     given_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     admin_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     giver = db.relationship('User', foreign_keys=[given_by])
@@ -89,6 +97,7 @@ class ThumbsRecord(db.Model):
             'given_by_name': self.giver.real_name if self.giver else None,
             'admin_id': self.admin_id,
             'admin_name': admin_name,
+            'is_deleted': self.is_deleted,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
 

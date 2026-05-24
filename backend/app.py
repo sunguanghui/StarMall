@@ -1,10 +1,13 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from datetime import datetime
+from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 import os
 import uuid
+import subprocess
+import glob as glob_module
 from config import Config
 import random
 from models import db, User, ThumbsRecord, Product, ExchangeRecord, Wishlist, Task, TaskLog
@@ -27,6 +30,11 @@ app.config.from_object(Config)
 CORS(app)
 db.init_app(app)
 jwt = JWTManager(app)
+
+# 创建备份目录
+BACKUP_DIR = app.config.get('BACKUP_DIR', os.path.join(os.path.dirname(__file__), 'backups'))
+if not os.path.exists(BACKUP_DIR):
+    os.makedirs(BACKUP_DIR)
 
 # 创建上传目录
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
@@ -489,7 +497,7 @@ def get_thumbs_records():
     user_id = request.args.get('user_id', type=int)
     given_by = request.args.get('given_by', type=int)
 
-    query = ThumbsRecord.query
+    query = ThumbsRecord.query.filter_by(is_deleted=False)
 
     if current_user.role != 'admin':
         # 普通用户只能看自己收到的记录
@@ -922,7 +930,10 @@ def get_dashboard_stats():
                 'available_points': current_user.available_points,
                 'used_points': current_user.total_points - current_user.available_points,
                 'total_thumbs': ThumbsRecord.query.filter_by(user_id=current_user_id).count(),
-                'total_exchanges': ExchangeRecord.query.filter_by(user_id=current_user_id, status='completed').count()
+                'total_exchanges': ExchangeRecord.query.filter_by(user_id=current_user_id, status='completed').count(),
+                'fragments': current_user.fragments or {'engine': 0, 'radar': 0, 'hull': 0},
+                'ship_level': current_user.ship_level or 1,
+                'streak_days': current_user.streak_days or 0,
             }
         })
 
@@ -1298,6 +1309,41 @@ def approve_task_log(log_id):
     user.total_points += task.energy_reward
     user.available_points += task.energy_reward
 
+    # 连击追踪
+    today = datetime.utcnow().date()
+    if user.last_active_date == today:
+        pass  # 同一天多次完成任务，不重复计算连击
+    elif user.last_active_date == today - timedelta(days=1):
+        user.streak_days = (user.streak_days or 0) + 1
+    else:
+        user.streak_days = 1
+    user.last_active_date = today
+
+    # 7天连击奖励：星云爆发 +10 能量
+    streak_bonus = 0
+    if user.streak_days > 0 and user.streak_days % 7 == 0:
+        streak_bonus = 10
+        user.total_points += streak_bonus
+        user.available_points += streak_bonus
+        bonus_record = ThumbsRecord(
+            user_id=log.user_id,
+            thumb_type='double',
+            points=streak_bonus,
+            reason=f'星云爆发！连续完成任务 {user.streak_days} 天',
+            given_by=current_user_id,
+            admin_id=current_user_id
+        )
+        db.session.add(bonus_record)
+
+    # 30%概率掉落飞船碎片
+    fragment_drop = None
+    if random.random() < 0.3:
+        parts = ['engine', 'radar', 'hull']
+        fragment_drop = random.choice(parts)
+        frags = user.fragments or {'engine': 0, 'radar': 0, 'hull': 0}
+        frags[fragment_drop] = frags.get(fragment_drop, 0) + 1
+        user.fragments = frags
+
     thumb_record = ThumbsRecord(
         user_id=log.user_id,
         thumb_type='single' if task.energy_reward <= 1 else 'double',
@@ -1309,7 +1355,13 @@ def approve_task_log(log_id):
     db.session.add(thumb_record)
     db.session.commit()
 
-    return jsonify({'code': 200, 'message': f'已批准，已发放 {task.energy_reward} 点能量', 'data': log.to_dict()})
+    msg = f'已批准，已发放 {task.energy_reward} 点能量'
+    if streak_bonus:
+        msg += f'，星云爆发额外奖励 {streak_bonus} 点'
+    if fragment_drop:
+        names = {'engine': '引擎碎片', 'radar': '雷达碎片', 'hull': '船体碎片'}
+        msg += f'，掉落了「{names[fragment_drop]}」'
+    return jsonify({'code': 200, 'message': msg, 'data': log.to_dict()})
 
 
 @app.route('/api/task-logs/<int:log_id>/reject', methods=['POST'])
@@ -1337,6 +1389,143 @@ def reject_task_log(log_id):
     return jsonify({'code': 200, 'message': '已驳回', 'data': log.to_dict()})
 
 
+# ==================== 后悔药撤销 API ====================
+
+@app.route('/api/thumbs/<int:record_id>/undo', methods=['POST'])
+@jwt_required()
+def undo_thumbs(record_id):
+    """撤销星辰币记录（15分钟内）"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+    if current_user.role != 'admin':
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    record = ThumbsRecord.query.get(record_id)
+    if not record:
+        return jsonify({'code': 404, 'message': '记录不存在'}), 404
+    if record.is_deleted:
+        return jsonify({'code': 400, 'message': '该记录已撤销'}), 400
+
+    age = datetime.utcnow() - record.created_at
+    if age > timedelta(minutes=15):
+        return jsonify({'code': 400, 'message': '超过15分钟，无法撤销'}), 400
+
+    user = User.query.get(record.user_id)
+    if not user:
+        return jsonify({'code': 404, 'message': '用户不存在'}), 404
+
+    try:
+        record.is_deleted = True
+        if record.points > 0:
+            user.total_points -= record.points
+            user.available_points -= record.points
+            if user.available_points < 0:
+                user.available_points = 0
+        else:
+            user.total_points -= record.points
+            user.available_points -= record.points
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({'code': 500, 'message': '撤销失败，请重试'}), 500
+
+    return jsonify({'code': 200, 'message': '已撤销该记录，能量已恢复'})
+
+
+# ==================== 飞船升级 API ====================
+
+@app.route('/api/users/<int:user_id>/upgrade-ship', methods=['POST'])
+@jwt_required()
+def upgrade_ship(user_id):
+    """消耗碎片升级飞船"""
+    current_user_id = get_jwt_identity()
+    if int(current_user_id) != user_id:
+        return jsonify({'code': 403, 'message': '只能升级自己的飞船'}), 403
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'code': 404, 'message': '用户不存在'}), 404
+
+    fragments = user.fragments or {'engine': 0, 'radar': 0, 'hull': 0}
+    if fragments.get('engine', 0) < 1 or fragments.get('radar', 0) < 1 or fragments.get('hull', 0) < 1:
+        return jsonify({'code': 400, 'message': '碎片不足，需要各部件碎片至少1个'}), 400
+
+    fragments['engine'] -= 1
+    fragments['radar'] -= 1
+    fragments['hull'] -= 1
+    user.fragments = fragments
+    user.ship_level = (user.ship_level or 1) + 1
+    db.session.commit()
+
+    return jsonify({
+        'code': 200,
+        'message': f'飞船升级成功！当前等级：{user.ship_level}',
+        'data': {'ship_level': user.ship_level, 'fragments': user.fragments}
+    })
+
+
+# ==================== 定时任务 ====================
+
+def energy_decay_job():
+    """每日检查：连续3天未活跃的用户扣除1点能量"""
+    with app.app_context():
+        cutoff = datetime.utcnow().date() - timedelta(days=3)
+        inactive_users = User.query.filter(
+            User.role == 'user',
+            db.or_(
+                User.last_active_date == None,
+                User.last_active_date < cutoff
+            )
+        ).all()
+        for user in inactive_users:
+            if user.available_points > 0:
+                user.available_points -= 1
+                user.total_points -= 1
+                record = ThumbsRecord(
+                    user_id=user.id,
+                    thumb_type='deduction',
+                    points=-1,
+                    reason='连续3天未完成任务，能量自动衰减',
+                    given_by=None,
+                    admin_id=None
+                )
+                db.session.add(record)
+        db.session.commit()
+
+
+def db_backup_job():
+    """每日凌晨3点备份数据库，保留最近7份"""
+    with app.app_context():
+        cfg = app.config
+        host = cfg.get('MYSQL_HOST', 'localhost')
+        port = cfg.get('MYSQL_PORT', 3306)
+        user = cfg.get('MYSQL_USER', 'root')
+        password = cfg.get('MYSQL_PASSWORD', 'root')
+        database = cfg.get('MYSQL_DATABASE', 'thumbs_mall')
+
+        filename = datetime.now().strftime('%Y-%m-%d') + '.sql'
+        filepath = os.path.join(BACKUP_DIR, filename)
+
+        env = os.environ.copy()
+        env['MYSQL_PWD'] = password
+        result = subprocess.run(
+            ['mysqldump', '-h', host, '-P', str(port), '-u', user, database],
+            capture_output=True, env=env
+        )
+        if result.returncode == 0:
+            with open(filepath, 'wb') as f:
+                f.write(result.stdout)
+            # 清理超过7天的备份
+            backups = sorted(glob_module.glob(os.path.join(BACKUP_DIR, '*.sql')))
+            for old in backups[:-7]:
+                os.remove(old)
+
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(energy_decay_job, 'cron', hour=0, minute=5)
+scheduler.add_job(db_backup_job, 'cron', hour=3, minute=0)
+
+
 # ==================== 错误处理 ====================
 
 @app.errorhandler(404)
@@ -1356,7 +1545,7 @@ if __name__ == '__main__':
     with app.app_context():
         # 创建所有表
         db.create_all()
-        
+
         # 检查是否存在管理员，如果不存在则创建
         admin = User.query.filter_by(username='admin').first()
         if not admin:
@@ -1369,6 +1558,7 @@ if __name__ == '__main__':
             db.session.add(admin)
             db.session.commit()
             print('已创建默认管理员账号: admin / admin123')
-    
+
+    scheduler.start()
     app.run(host='0.0.0.0', port=28001, debug=True)
 

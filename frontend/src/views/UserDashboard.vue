@@ -134,12 +134,61 @@
       <div ref="chartRef" class="chart-container" />
     </el-card>
 
+    <!-- 飞船升级面板 -->
+    <el-card class="content-card ship-card">
+      <template #header>
+        <span class="chart-title">🚀 飞船改造舱</span>
+      </template>
+      <div class="ship-upgrade">
+        <div class="ship-level-badge">
+          <span class="ship-emoji">{{ shipEmoji }}</span>
+          <div class="ship-level-text">
+            <div class="ship-level-num">Lv.{{ stats.ship_level || 1 }}</div>
+            <div class="ship-level-label">当前飞船等级</div>
+          </div>
+        </div>
+        <div class="fragments-grid">
+          <div class="fragment-item" :class="{ 'has-frag': (stats.fragments?.engine || 0) > 0 }">
+            <div class="frag-icon">🔧</div>
+            <div class="frag-count">{{ stats.fragments?.engine || 0 }}</div>
+            <div class="frag-label">引擎碎片</div>
+          </div>
+          <div class="fragment-item" :class="{ 'has-frag': (stats.fragments?.radar || 0) > 0 }">
+            <div class="frag-icon">📡</div>
+            <div class="frag-count">{{ stats.fragments?.radar || 0 }}</div>
+            <div class="frag-label">雷达碎片</div>
+          </div>
+          <div class="fragment-item" :class="{ 'has-frag': (stats.fragments?.hull || 0) > 0 }">
+            <div class="frag-icon">🛡️</div>
+            <div class="frag-count">{{ stats.fragments?.hull || 0 }}</div>
+            <div class="frag-label">船体碎片</div>
+          </div>
+        </div>
+        <div class="upgrade-tip">每种碎片各需1个即可升级飞船，完成任务有30%概率掉落碎片</div>
+        <el-button
+          type="primary"
+          round
+          :disabled="!canUpgrade"
+          :loading="upgrading"
+          @click="upgradeShip"
+          class="upgrade-btn"
+        >
+          {{ canUpgrade ? '🚀 立即升级飞船' : '碎片不足，继续完成任务' }}
+        </el-button>
+        <div v-if="stats.streak_days > 0" class="streak-badge">
+          🔥 连续完成任务 {{ stats.streak_days }} 天
+          <span v-if="stats.streak_days % 7 === 0" class="streak-bonus">星云爆发！</span>
+        </div>
+      </div>
+    </el-card>
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import * as echarts from 'echarts'
+import { ElMessage } from 'element-plus'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 
@@ -150,7 +199,19 @@ const recentExchanges = ref([])
 const thumbsLoading = ref(false)
 const exchangesLoading = ref(false)
 const chartRef = ref(null)
+const upgrading = ref(false)
 let chartInstance = null
+
+const shipEmojis = ['🚀', '🛸', '🌠', '🪐', '⭐', '🌌']
+const shipEmoji = computed(() => {
+  const level = stats.value.ship_level || 1
+  return shipEmojis[Math.min(level - 1, shipEmojis.length - 1)]
+})
+
+const canUpgrade = computed(() => {
+  const f = stats.value.fragments || {}
+  return (f.engine || 0) >= 1 && (f.radar || 0) >= 1 && (f.hull || 0) >= 1
+})
 
 const getStatusType = (status) => {
   const types = { pending: 'warning', completed: 'success', cancelled: 'info' }
@@ -234,6 +295,19 @@ const initChart = async () => {
     })
   } catch (error) {
     console.error('加载图表数据失败:', error)
+  }
+}
+
+const upgradeShip = async () => {
+  upgrading.value = true
+  try {
+    const res = await api.post(`/users/${userStore.userInfo.id}/upgrade-ship`)
+    ElMessage.success(res.message || '飞船升级成功！')
+    await loadStats()
+  } catch (err) {
+    ElMessage.error(err.response?.data?.message || '升级失败')
+  } finally {
+    upgrading.value = false
   }
 }
 
@@ -486,6 +560,61 @@ onBeforeUnmount(() => {
 .chart-title { font-size: 16px; font-weight: 700; color: #444; }
 .negative-points { color: #f56c6c; font-weight: bold; }
 .chart-container { height: 220px; width: 100%; }
+
+/* 飞船升级 */
+.ship-card { margin-bottom: 12px; }
+.ship-upgrade { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 8px 0; }
+
+.ship-level-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ship-emoji { font-size: 48px; line-height: 1; }
+.ship-level-num { font-size: 28px; font-weight: 900; color: #7B68EE; }
+.ship-level-label { font-size: 12px; color: #999; }
+
+.fragments-grid {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.fragment-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 20px;
+  border-radius: 16px;
+  background: #f8f6ff;
+  border: 2px solid #e8e0ff;
+  transition: all 0.2s;
+  min-width: 80px;
+}
+.fragment-item.has-frag {
+  border-color: #7B68EE;
+  background: linear-gradient(135deg, #f0edff, #fff8f0);
+}
+.frag-icon { font-size: 24px; }
+.frag-count { font-size: 22px; font-weight: 900; color: #7B68EE; }
+.frag-label { font-size: 11px; color: #999; }
+
+.upgrade-tip { font-size: 12px; color: #bbb; text-align: center; }
+.upgrade-btn { min-width: 200px; }
+
+.streak-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #FF6B9D;
+  background: #fff0f5;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+.streak-bonus { color: #7B68EE; font-size: 12px; }
 
 @media (max-width: 1200px) {
   .planet { width: 80px; height: 80px; }

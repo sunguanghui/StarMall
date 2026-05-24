@@ -133,6 +133,18 @@
         <el-table-column prop="parent_message" label="舰长寄语" show-overflow-tooltip />
         <el-table-column prop="given_by_name" label="赋能官 ✨" width="120" />
         <el-table-column prop="created_at" label="发放时间" width="180" />
+        <el-table-column label="操作" width="100" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              v-if="isUndoable(row)"
+              link
+              type="danger"
+              size="small"
+              :loading="undoing === row.id"
+              @click="handleUndo(row)"
+            >后悔药</el-button>
+          </template>
+        </el-table-column>
       </el-table>
 
       <el-pagination
@@ -150,7 +162,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Star, Promotion } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 
@@ -158,6 +170,7 @@ const formRef = ref(null)
 const submitting = ref(false)
 const searchLoading = ref(false)
 const userOptions = ref([])
+const undoing = ref(null)
 
 const punishPresets = [
   { label: '陨石撞击 (-2)', points: -2 },
@@ -263,6 +276,32 @@ const resetForm = () => {
   form.is_deduction = false
   form.deductionPoints = null
   form.customPoints = null
+}
+
+const isUndoable = (row) => {
+  if (row.is_deleted) return false
+  const created = new Date(row.created_at)
+  return (Date.now() - created.getTime()) < 15 * 60 * 1000
+}
+
+const handleUndo = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `撤销对「${row.user_name}」的 ${row.points} 点能量操作？`,
+      '后悔药',
+      { confirmButtonText: '确认撤销', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch { return }
+  undoing.value = row.id
+  try {
+    await api.post(`/thumbs/${row.id}/undo`)
+    ElMessage.success('已撤销，能量已恢复')
+    records.value = records.value.filter(r => r.id !== row.id)
+  } catch (err) {
+    ElMessage.error(err.response?.data?.message || '撤销失败')
+  } finally {
+    undoing.value = null
+  }
 }
 
 const loadRecords = async () => {

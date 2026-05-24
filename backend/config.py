@@ -35,3 +35,7 @@ class Config:
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
+    # APScheduler 配置
+    SCHEDULER_API_ENABLED = False
+    BACKUP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
+
