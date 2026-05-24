@@ -1812,8 +1812,23 @@ def internal_error(error):
 # ==================== 启动初始化（gunicorn/直接运行均执行）====================
 
 def _init_app():
+    import time
+    # Wait for MySQL to be ready (Docker startup race condition)
+    for attempt in range(30):
+        try:
+            with app.app_context():
+                db.engine.connect()
+            break
+        except Exception:
+            time.sleep(2)
+    else:
+        return  # give up after 60s; gunicorn will restart the worker
+
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except Exception:
+            pass  # tables already exist in another worker
 
         admin = User.query.filter_by(username='admin').first()
         if not admin:
