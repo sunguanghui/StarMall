@@ -16,10 +16,14 @@ CREATE TABLE IF NOT EXISTS users (
     avatar          VARCHAR(255) DEFAULT NULL COMMENT '头像（预设标识或上传路径）',
     role            ENUM('admin', 'user') DEFAULT 'user',
     is_super_admin  TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否超级管理员',
-    total_points    INT DEFAULT 0 COMMENT '总能量',
+    total_points     INT DEFAULT 0 COMMENT '总能量',
     available_points INT DEFAULT 0 COMMENT '可用能量',
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    fragments        JSON DEFAULT (JSON_OBJECT('engine', 0, 'radar', 0, 'hull', 0)) COMMENT '飞船碎片',
+    ship_level       INT DEFAULT 1 COMMENT '飞船等级',
+    streak_days      INT DEFAULT 0 COMMENT '连续打卡天数',
+    last_active_date DATE DEFAULT NULL COMMENT '最后活跃日期',
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
@@ -33,6 +37,7 @@ CREATE TABLE IF NOT EXISTS thumbs_records (
     parent_message TEXT COMMENT '舰长寄语',
     given_by       INT COMMENT '发放人ID',
     admin_id       INT COMMENT '操作管理员ID（审计用）',
+    is_deleted     TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否已撤销',
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (given_by) REFERENCES users(id) ON DELETE SET NULL,
@@ -121,13 +126,13 @@ CREATE TABLE IF NOT EXISTS task_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务执行记录表';
 
 -- 默认管理员账号 (密码: admin123)，超级管理员
-INSERT INTO users (username, password, real_name, role, is_super_admin, total_points, available_points) VALUES
-('admin', 'scrypt:32768:8:1$i0kfF5rTSvoYIK8w$f3a64acc3231e2ae09726f8ec928b75a5617105889add4813756d6adb6ed2ded6b5e8f4102732f34f40e3e48aec18baff3128f974d6933ea77eb71f7e3abadfd', '系统管理员', 'admin', 1, 0, 0);
+INSERT INTO users (username, password, real_name, role, is_super_admin, total_points, available_points, ship_level, streak_days) VALUES
+('admin', 'scrypt:32768:8:1$i0kfF5rTSvoYIK8w$f3a64acc3231e2ae09726f8ec928b75a5617105889add4813756d6adb6ed2ded6b5e8f4102732f34f40e3e48aec18baff3128f974d6933ea77eb71f7e3abadfd', '系统管理员', 'admin', 1, 0, 0, 1, 0);
 
 -- 测试用户 (密码: user123)
-INSERT INTO users (username, password, real_name, email, total_points, available_points) VALUES
-('zhangsan', 'scrypt:32768:8:1$RYUIJQhxyh2NrIZM$bbdd6fa8eb3a1d72ae2c1eb347bb8363b61fd16951791512dcb7c2371ed97a32d9ee6edf95d1da739d1745492cc1cbddc53285cfd4b909c38f21dbebb531c4d6', '张三', 'zhangsan@example.com', 100, 100),
-('lisi', 'scrypt:32768:8:1$kbt6ZfAICQTlL1fX$fafbc667c308f90851d4e833757c558b4b79d1dc4a03addb9fe1c5a547faf1a4407e30bcf00fc99ee157b9031f59ad8977deb05ad4abe235b28ee2821586f673', '李四', 'lisi@example.com', 50, 50);
+INSERT INTO users (username, password, real_name, email, total_points, available_points, ship_level, streak_days) VALUES
+('zhangsan', 'scrypt:32768:8:1$RYUIJQhxyh2NrIZM$bbdd6fa8eb3a1d72ae2c1eb347bb8363b61fd16951791512dcb7c2371ed97a32d9ee6edf95d1da739d1745492cc1cbddc53285cfd4b909c38f21dbebb531c4d6', '张三', 'zhangsan@example.com', 100, 100, 1, 0),
+('lisi', 'scrypt:32768:8:1$kbt6ZfAICQTlL1fX$fafbc667c308f90851d4e833757c558b4b79d1dc4a03addb9fe1c5a547faf1a4407e30bcf00fc99ee157b9031f59ad8977deb05ad4abe235b28ee2821586f673', '李四', 'lisi@example.com', 50, 50, 1, 0);
 
 -- 示例任务数据（归属超级管理员，所有舰长均可审批）
 INSERT INTO tasks (title, type, energy_reward, is_active, created_by) VALUES
