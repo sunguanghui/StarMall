@@ -503,6 +503,12 @@ def update_user(user_id):
     # 只有超级管理员可以修改 is_super_admin
     if 'is_super_admin' in data and current_user.is_super_admin:
         user.is_super_admin = data['is_super_admin']
+    # 只有管理员可以设置儿童账号标志和图案密码
+    if current_user.role == 'admin':
+        if 'is_child' in data:
+            user.is_child = bool(data['is_child'])
+        if 'child_pattern' in data:
+            user.child_pattern = data['child_pattern'] if data['child_pattern'] else None
 
     db.session.commit()
 

@@ -39,6 +39,7 @@
             <el-tag :type="row.role === 'admin' ? 'danger' : 'primary'" size="small">
               {{ row.role === 'admin' ? (row.is_super_admin ? '👑 超级管理员' : '管理员') : '普通用户' }}
             </el-tag>
+            <el-tag v-if="row.is_child" type="warning" size="small" style="margin-left:4px;">🚀 宇航员</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="total_points" label="总积分" width="90" />
@@ -123,6 +124,38 @@
           <el-switch v-model="form.is_super_admin" />
           <span style="margin-left:10px;font-size:12px;color:#aaa;">超级管理员拥有全部权限</span>
         </el-form-item>
+
+        <!-- 儿童账号配置（仅普通用户可设置） -->
+        <template v-if="form.role === 'user'">
+          <el-divider content-position="left"><span style="font-size:13px;color:#aaa;">🚀 宇航员专属通道</span></el-divider>
+          <el-form-item label="儿童账号">
+            <el-switch v-model="form.is_child" active-text="开启" inactive-text="关闭" />
+            <span style="margin-left:10px;font-size:12px;color:#aaa;">开启后可在登录页宇航员通道选择该账号</span>
+          </el-form-item>
+          <el-form-item v-if="form.is_child" label="图案密码">
+            <div class="pattern-editor">
+              <div class="pattern-icons">
+                <button
+                  v-for="(icon, idx) in patternIcons"
+                  :key="idx"
+                  class="pattern-icon-btn"
+                  :class="{ selected: form.child_pattern?.includes(idx), 'last-sel': form.child_pattern?.[form.child_pattern.length-1] === idx }"
+                  type="button"
+                  @click="togglePatternIcon(idx)"
+                >
+                  <span>{{ icon }}</span>
+                  <span v-if="form.child_pattern?.includes(idx)" class="pattern-order">{{ form.child_pattern.indexOf(idx) + 1 }}</span>
+                </button>
+              </div>
+              <div class="pattern-status">
+                <span v-if="!form.child_pattern?.length" style="color:#bbb;">点击上方图标设置解锁顺序（需选满3个）</span>
+                <span v-else-if="form.child_pattern.length < 3" style="color:#e6a23c;">已选 {{ form.child_pattern.length }} 个，还需 {{ 3 - form.child_pattern.length }} 个</span>
+                <span v-else style="color:#67c23a;">✓ 密码已设置：{{ form.child_pattern.map(i => patternIcons[i]).join(' → ') }}</span>
+                <el-button v-if="form.child_pattern?.length" link type="danger" size="small" @click="form.child_pattern = []">清除</el-button>
+              </div>
+            </div>
+          </el-form-item>
+        </template>
       </el-form>
 
       <template #footer>
@@ -217,8 +250,22 @@ const form = reactive({
   phone: '',
   role: 'user',
   is_super_admin: false,
-  avatar: 'preset_1'
+  avatar: 'preset_1',
+  is_child: false,
+  child_pattern: []
 })
+
+const patternIcons = ['🌟', '🚀', '🪐', '🛸', '👾', '🌙']
+
+const togglePatternIcon = (idx) => {
+  if (!form.child_pattern) form.child_pattern = []
+  const pos = form.child_pattern.indexOf(idx)
+  if (pos !== -1) {
+    form.child_pattern.splice(pos, 1)
+  } else if (form.child_pattern.length < 3) {
+    form.child_pattern.push(idx)
+  }
+}
 
 const rules = computed(() => ({
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
@@ -243,7 +290,7 @@ const loadUsers = async () => {
 
 const handleAdd = () => {
   dialogTitle.value = '新增用户'
-  Object.assign(form, { id: null, username: '', password: '', real_name: '', email: '', phone: '', role: 'user', is_super_admin: false, avatar: 'preset_1' })
+  Object.assign(form, { id: null, username: '', password: '', real_name: '', email: '', phone: '', role: 'user', is_super_admin: false, avatar: 'preset_1', is_child: false, child_pattern: [] })
   dialogVisible.value = true
 }
 
@@ -258,7 +305,9 @@ const handleEdit = (row) => {
     phone: row.phone,
     role: row.role,
     is_super_admin: row.is_super_admin || false,
-    avatar: row.avatar || 'preset_1'
+    avatar: row.avatar || 'preset_1',
+    is_child: row.is_child || false,
+    child_pattern: row.child_pattern ? [...row.child_pattern] : []
   })
   dialogVisible.value = true
 }
@@ -289,6 +338,10 @@ const handleSubmit = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
     if (!valid) return
+    if (form.is_child && (!form.child_pattern || form.child_pattern.length !== 3)) {
+      ElMessage.error('请为儿童账号设置完整的3步图案密码')
+      return
+    }
     submitting.value = true
     try {
       if (form.id) {
@@ -428,5 +481,58 @@ onMounted(() => { loadUsers() })
 .table-scroll-wrapper {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+/* 图案密码编辑器 */
+.pattern-editor { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+
+.pattern-icons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-width: 240px;
+}
+
+.pattern-icon-btn {
+  position: relative;
+  height: 56px;
+  background: #f5f0ff;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  font-size: 26px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pattern-icon-btn:hover { border-color: #7B68EE; transform: scale(1.06); }
+.pattern-icon-btn.selected {
+  background: #f0e8ff;
+  border-color: #FF6B9D;
+  box-shadow: 0 0 0 2px rgba(255,107,157,0.2);
+}
+
+.pattern-order {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  font-size: 10px;
+  font-weight: 900;
+  color: #FF6B9D;
+  background: rgba(255,107,157,0.15);
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pattern-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
 }
 </style>
