@@ -262,14 +262,15 @@ def login():
 @app.route('/api/auth/child-profiles', methods=['GET'])
 def get_child_profiles():
     """获取所有儿童账号的公开信息（头像、昵称、username），不返回密码和图案"""
-    children = User.query.filter_by(is_child=True).all()
+    children = User.query.filter_by(is_child=True, role='user').all()
     return jsonify({
         'code': 200,
         'data': [
             {
                 'username': u.username,
                 'name': u.real_name,
-                'avatar': u.avatar or '👦'
+                'avatar': u.avatar or '👦',
+                'role': u.role
             }
             for u in children
         ]

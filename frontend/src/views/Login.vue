@@ -130,8 +130,8 @@
 
       <!-- 切换通道按钮：悬浮于卡片之上，不参与翻转 -->
       <button class="flip-toggle-btn" @click="toggleFlip">
-        <span v-if="!isFlipped">🔁 切换至宇航员通道</span>
-        <span v-else>🔙 返回飞行员通道</span>
+        <span v-if="!isFlipped">👉 切换至小宇航员快捷舱</span>
+        <span v-else>👈 返回星际密码终端</span>
       </button>
 
       <div class="card-flipper" :class="{ flipped: isFlipped }">
@@ -139,7 +139,7 @@
         <!-- ===== 正面：标准登录 ===== -->
         <div class="card-face card-front login-box">
           <div class="login-header">
-            <h1>🚀 星途补给站</h1>
+            <h1>星际密码终端</h1>
             <p>欢迎登录，飞行员</p>
           </div>
 
@@ -147,7 +147,7 @@
             <el-form-item prop="username">
               <el-input
                 v-model="form.username"
-                placeholder="输入飞行员代号"
+                placeholder="请输入星际通行证账号"
                 size="large"
                 :prefix-icon="User"
                 class="space-input"
@@ -158,7 +158,7 @@
               <el-input
                 v-model="form.password"
                 type="password"
-                placeholder="输入星际密钥"
+                placeholder="请输入星际密钥"
                 size="large"
                 :prefix-icon="Lock"
                 @keyup.enter="handleLogin"
@@ -175,7 +175,7 @@
               @click="handleLogin"
               class="login-button"
             >
-              🚀 启动飞船 · 登录
+              🚀 启动飞船
             </el-button>
           </el-form>
 
@@ -193,8 +193,8 @@
         <!-- ===== 背面：宇航员专属通道（儿童极简登录） ===== -->
         <div class="card-face card-back login-box">
           <div class="login-header">
-            <h1>🌟 宇航员专属通道</h1>
-            <p>选择你的太空身份吧！</p>
+            <h1>🌟 小宇航员快捷舱</h1>
+            <p>点击专属头像，开启免密登舰！</p>
           </div>
 
           <!-- 未选头像：展示儿童列表 -->
@@ -358,7 +358,12 @@ const loadChildProfiles = async () => {
   try {
     const res = await fetch('/api/auth/child-profiles')
     const json = await res.json()
-    children.value = (json.code === 200 && Array.isArray(json.data)) ? json.data : []
+    if (json.code === 200 && Array.isArray(json.data)) {
+      // 强制过滤，只保留 role == 'user' 的普通宇航员
+      children.value = json.data.filter(c => c.role === 'user' || !c.role)
+    } else {
+      children.value = []
+    }
   } catch (e) {
     console.error('加载儿童账号失败:', e)
     children.value = []
