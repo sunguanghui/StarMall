@@ -1809,32 +1809,23 @@ def internal_error(error):
     return jsonify({'code': 500, 'message': '服务器内部错误'}), 500
 
 
-# ==================== 主程序 ====================
+# ==================== 启动初始化（gunicorn/直接运行均执行）====================
 
-if __name__ == '__main__':
+def _init_app():
     with app.app_context():
-        # 创建所有表
         db.create_all()
 
-        # 检查是否存在管理员，如果不存在则创建
         admin = User.query.filter_by(username='admin').first()
         if not admin:
-            admin = User(
-                username='admin',
-                real_name='系统管理员',
-                role='admin'
-            )
+            admin = User(username='admin', real_name='系统管理员', role='admin')
             admin.set_password('admin123')
             db.session.add(admin)
             db.session.commit()
-            print('已创建默认管理员账号: admin / admin123')
 
-        # 初始化系统设置（若无记录则写入默认值）
         if not SystemSettings.query.first():
             db.session.add(SystemSettings())
             db.session.commit()
 
-        # 从数据库加载音箱配置
         settings = SystemSettings.query.first()
         if settings and settings.speaker_ip:
             speaker_client.configure(
@@ -1843,8 +1834,17 @@ if __name__ == '__main__':
             )
             speaker_client.start()
 
-        # 注册定时播报任务
-        _reschedule_broadcast_jobs(settings) if settings else None
+        if settings:
+            _reschedule_broadcast_jobs(settings)
 
-    scheduler.start()
+    if not scheduler.running:
+        scheduler.start()
+
+
+_init_app()
+
+
+# ==================== 主程序 ====================
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=28001, debug=True)
