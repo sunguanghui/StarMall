@@ -10,10 +10,10 @@
         <!-- 宇航员菜单 -->
         <template v-if="!userStore.isAdmin()">
           <el-menu-item index="/dashboard"><el-icon><House /></el-icon><span>空间站控制台</span></el-menu-item>
-          <el-menu-item index="/mall"><el-icon><Shop /></el-icon><span>能量补给舱</span></el-menu-item>
+          <el-menu-item id="onboard-menu-mall" index="/mall"><el-icon><Shop /></el-icon><span>能量补给舱</span></el-menu-item>
           <el-menu-item index="/my-points"><el-icon><TrophyBase /></el-icon><span>航行能量轨迹</span></el-menu-item>
           <el-menu-item index="/my-exchanges"><el-icon><ShoppingCart /></el-icon><span>兑换发货舱</span></el-menu-item>
-          <el-menu-item index="/tasks"><el-icon><Aim /></el-icon><span>星际任务雷达</span></el-menu-item>
+          <el-menu-item id="onboard-menu-tasks" index="/tasks"><el-icon><Aim /></el-icon><span>星际任务雷达</span></el-menu-item>
           <el-menu-item index="/wishlist"><el-icon><Star /></el-icon><span>许愿发射台</span></el-menu-item>
           <el-menu-item index="/help"><el-icon><QuestionFilled /></el-icon><span>星际航行指南</span></el-menu-item>
         </template>
@@ -22,14 +22,14 @@
         <template v-else>
           <el-menu-item index="/admin/dashboard"><el-icon><DataAnalysis /></el-icon><span>舰队指挥中心</span></el-menu-item>
           <el-menu-item index="/admin/thumbs"><el-icon><Lightning /></el-icon><span>能量源控制</span></el-menu-item>
-          <el-menu-item index="/admin/task-approval"><el-icon><Checked /></el-icon><span>任务核验舱</span></el-menu-item>
+          <el-menu-item id="onboard-menu-task-approval" index="/admin/task-approval"><el-icon><Checked /></el-icon><span>任务核验舱</span></el-menu-item>
           <el-menu-item index="/admin/exchange-delivery"><el-icon><Box /></el-icon><span>补给调度室</span></el-menu-item>
           <el-menu-item index="/admin/wishlist-approval"><el-icon><Compass /></el-icon><span>蓝图解析室</span></el-menu-item>
-          <el-menu-item index="/admin/tasks"><el-icon><Aim /></el-icon><span>任务定义管理</span></el-menu-item>
+          <el-menu-item id="onboard-menu-task-def" index="/admin/tasks"><el-icon><Aim /></el-icon><span>任务定义管理</span></el-menu-item>
           <template v-if="userStore.isSuperAdmin()">
             <el-menu-item index="/admin/users"><el-icon><UserFilled /></el-icon><span>乘员编制管理</span></el-menu-item>
             <el-menu-item index="/admin/products"><el-icon><Shop /></el-icon><span>补给物资库房</span></el-menu-item>
-            <el-menu-item index="/admin/exchanges"><el-icon><List /></el-icon><span>全站星际日志</span></el-menu-item>
+            <el-menu-item id="onboard-menu-exchanges" index="/admin/exchanges"><el-icon><List /></el-icon><span>全站星际日志</span></el-menu-item>
             <el-menu-item index="/admin/broadcast-settings"><el-icon><Mic /></el-icon><span>星际广播台</span></el-menu-item>
           </template>
         </template>
@@ -46,6 +46,10 @@
           <el-tag v-if="userStore.isSuperAdmin()" type="danger" size="small" round class="role-tag">👑 舰长</el-tag>
           <el-tag v-else-if="userStore.isAdmin()" type="warning" size="small" round class="role-tag">🧭 领航员</el-tag>
           <span class="username">{{ userStore.userInfo?.real_name }}</span>
+          <!-- 引导帮助按钮 -->
+          <button id="onboard-help-btn" class="help-btn" @click="onboarding.play(true)" title="重新播放新手引导">
+            ❓
+          </button>
           <el-dropdown @command="handleCommand">
             <div class="avatar-wrap">
               <span v-if="!avatarIsUrl" class="avatar-emoji">{{ avatarEmoji }}</span>
@@ -175,7 +179,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import {
@@ -184,6 +188,7 @@ import {
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
+import { useOnboarding } from '@/composables/useOnboarding'
 
 const route = useRoute()
 const router = useRouter()
@@ -192,6 +197,14 @@ const drawerVisible = ref(false)
 const profileVisible = ref(false)
 
 const activeMenu = computed(() => route.path)
+
+const onboarding = useOnboarding(userStore)
+
+onMounted(async () => {
+  await nextTick()
+  // 延迟 600ms 等待子路由（Dashboard）渲染完毕，确保锚点 DOM 已存在
+  setTimeout(() => onboarding.autoPlay(), 600)
+})
 
 const presetAvatars = [
   { key: 'preset_1', emoji: '🚀' },
@@ -347,6 +360,31 @@ const handleCommand = (command) => {
   font-weight: 600;
 }
 
+/* 帮助引导按钮 */
+.help-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(123, 104, 238, 0.3);
+  background: rgba(123, 104, 238, 0.08);
+  color: #7B68EE;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  line-height: 1;
+  padding: 0;
+}
+.help-btn:hover {
+  background: rgba(123, 104, 238, 0.18);
+  box-shadow: 0 0 10px rgba(123, 104, 238, 0.3);
+  transform: scale(1.12);
+}
+.help-btn:active { transform: scale(0.92); }
+
 .avatar-wrap {
   width: 36px;
   height: 36px;
@@ -465,5 +503,39 @@ const handleCommand = (command) => {
   }
   .main-content { padding: 12px; }
   .menu :deep(.el-menu-item) { height: 52px; }
+}
+</style>
+
+<style>
+/* driver.js 星途粉紫主题覆盖（全局，不 scoped） */
+.starway-popover .driver-popover-title {
+  font-size: 16px;
+  font-weight: 900;
+  color: #7B68EE;
+}
+.starway-popover .driver-popover-description {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.7;
+}
+.starway-popover .driver-popover-footer button {
+  border-radius: 20px !important;
+  font-weight: 700;
+}
+.starway-popover .driver-popover-next-btn {
+  background: linear-gradient(135deg, #FF6B9D, #7B68EE) !important;
+  border: none !important;
+  color: white !important;
+}
+.starway-popover .driver-popover-next-btn:hover {
+  opacity: 0.88 !important;
+}
+.starway-popover .driver-popover-prev-btn {
+  color: #7B68EE !important;
+  border-color: #7B68EE !important;
+}
+.starway-popover .driver-popover-progress-text {
+  color: #bbb;
+  font-size: 12px;
 }
 </style>

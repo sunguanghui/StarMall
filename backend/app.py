@@ -259,6 +259,51 @@ def login():
     })
 
 
+@app.route('/api/auth/child-profiles', methods=['GET'])
+def get_child_profiles():
+    """获取所有儿童账号的公开信息（头像、昵称、username），不返回密码和图案"""
+    children = User.query.filter_by(is_child=True).all()
+    return jsonify({
+        'code': 200,
+        'data': [
+            {
+                'username': u.username,
+                'name': u.real_name,
+                'avatar': u.avatar or '👦'
+            }
+            for u in children
+        ]
+    })
+
+
+@app.route('/api/auth/child-login', methods=['POST'])
+def child_login():
+    """儿童图案密码登录：接收 username + pattern 序列，后端比对后签发 token"""
+    data = request.get_json()
+    username = data.get('username')
+    pattern = data.get('pattern')  # list[int]
+
+    if not username or pattern is None:
+        return jsonify({'code': 400, 'message': '参数不完整'}), 400
+
+    user = User.query.filter_by(username=username, is_child=True).first()
+    if not user:
+        return jsonify({'code': 401, 'message': '账号不存在'}), 401
+
+    if not user.child_pattern or list(pattern) != list(user.child_pattern):
+        return jsonify({'code': 401, 'message': '图案密码错误'}), 401
+
+    access_token = create_access_token(identity=str(user.id))
+    return jsonify({
+        'code': 200,
+        'message': '登录成功',
+        'data': {
+            'token': access_token,
+            'user': user.to_dict()
+        }
+    })
+
+
 @app.route('/api/auth/info', methods=['GET'])
 @jwt_required()
 def get_user_info():

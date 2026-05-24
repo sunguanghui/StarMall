@@ -44,6 +44,13 @@ export const useUserStore = defineStore('user', () => {
     return userInfo.value?.role === 'admin' && userInfo.value?.is_super_admin === true
   }
 
+  const setLoginData = (data) => {
+    token.value = data.token
+    userInfo.value = data.user
+    localStorage.setItem('token', token.value)
+    localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+  }
+
   return {
     token,
     userInfo,
@@ -52,7 +59,8 @@ export const useUserStore = defineStore('user', () => {
     getUserInfo,
     updateAvatar,
     isAdmin,
-    isSuperAdmin
+    isSuperAdmin,
+    setLoginData
   }
 })
 

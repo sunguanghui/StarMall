@@ -63,7 +63,7 @@
     <el-row :gutter="16">
       <!-- 舰队成员概览 -->
       <el-col :xs="24" :lg="14">
-        <el-card class="content-card">
+        <el-card id="onboard-admin-crew" class="content-card">
           <template #header>
             <div class="card-header">
               <span class="section-title">👥 舰队成员概览</span>

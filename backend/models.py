@@ -23,6 +23,8 @@ class User(db.Model):
     ship_level = db.Column(db.Integer, default=1)
     streak_days = db.Column(db.Integer, default=0)
     last_active_date = db.Column(db.Date, nullable=True)
+    is_child = db.Column(db.Boolean, nullable=False, default=False)
+    child_pattern = db.Column(db.JSON, nullable=True, default=None)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

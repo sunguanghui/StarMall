@@ -22,7 +22,7 @@
         <div class="planet-label">总能量</div>
       </div>
 
-      <div class="planet planet-2" @click="$router.push('/my-points')" title="点击查看能量详情">
+      <div id="onboard-user-points" class="planet planet-2" @click="$router.push('/my-points')" title="点击查看能量详情">
         <div class="planet-emoji">⚡</div>
         <div class="planet-value">{{ stats.available_points || 0 }}</div>
         <div class="planet-label">可用能量</div>
