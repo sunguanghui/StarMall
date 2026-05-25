@@ -20,54 +20,109 @@
         </el-form-item>
       </el-form>
 
-      <div class="table-scroll-wrapper">
-      <el-table :data="users" style="width: 100%" v-loading="loading">
-        <el-table-column label="头像" width="70">
-          <template #default="{ row }">
-            <div class="table-avatar">
-              <span v-if="!isUrl(row.avatar)" class="table-avatar-emoji">{{ getEmoji(row.avatar) }}</span>
-              <el-avatar v-else :size="36" :src="row.avatar" />
+      <!-- ===== PC 端表格（> 768px） ===== -->
+      <div class="table-scroll-wrapper pc-only">
+        <el-table :data="users" style="width: 100%" v-loading="loading">
+          <el-table-column label="头像" width="70">
+            <template #default="{ row }">
+              <div class="table-avatar">
+                <span v-if="!isUrl(row.avatar)" class="table-avatar-emoji">{{ getEmoji(row.avatar) }}</span>
+                <el-avatar v-else :size="36" :src="row.avatar" />
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="username" label="用户名" width="110" />
+          <el-table-column prop="real_name" label="姓名" width="100" />
+          <el-table-column prop="email" label="邮箱" show-overflow-tooltip />
+          <el-table-column prop="phone" label="电话" width="130" />
+          <el-table-column prop="role" label="角色" width="130">
+            <template #default="{ row }">
+              <el-tag :type="row.role === 'admin' ? 'danger' : 'primary'" size="small">
+                {{ row.role === 'admin' ? (row.is_super_admin ? '👑 超级管理员' : '管理员') : '普通用户' }}
+              </el-tag>
+              <el-tag v-if="row.is_child" type="warning" size="small" style="margin-left:4px;">🚀 宇航员</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="total_points" label="总积分" width="90" />
+          <el-table-column prop="available_points" label="可用积分" width="90" />
+          <el-table-column prop="created_at" label="创建时间" width="160" />
+          <el-table-column label="账号状态" width="110">
+            <template #default="{ row }">
+              <el-tag
+                :type="(row.status || 'active') === 'active' ? 'success' : 'warning'"
+                size="small"
+              >
+                {{ (row.status || 'active') === 'active' ? '已激活' : '待审批' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="240" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+              <el-button link type="warning" @click="handleResetPassword(row)">重置密码</el-button>
+              <el-button
+                v-if="(row.status || 'active') === 'pending'"
+                link
+                type="success"
+                @click="handleApprove(row)"
+              >批准登舰</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
+      <div class="mobile-only mobile-card-list" v-loading="loading">
+        <div v-for="row in users" :key="row.id" class="user-card">
+          <!-- 卡片顶部：头像 + 姓名 + 角色标签 -->
+          <div class="user-card-top">
+            <div class="user-card-avatar">
+              <span v-if="!isUrl(row.avatar)" class="user-card-emoji">{{ getEmoji(row.avatar) }}</span>
+              <el-avatar v-else :size="44" :src="row.avatar" />
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="username" label="用户名" width="110" />
-        <el-table-column prop="real_name" label="姓名" width="100" />
-        <el-table-column prop="email" label="邮箱" show-overflow-tooltip />
-        <el-table-column prop="phone" label="电话" width="130" />
-        <el-table-column prop="role" label="角色" width="130">
-          <template #default="{ row }">
-            <el-tag :type="row.role === 'admin' ? 'danger' : 'primary'" size="small">
-              {{ row.role === 'admin' ? (row.is_super_admin ? '👑 超级管理员' : '管理员') : '普通用户' }}
-            </el-tag>
-            <el-tag v-if="row.is_child" type="warning" size="small" style="margin-left:4px;">🚀 宇航员</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="total_points" label="总积分" width="90" />
-        <el-table-column prop="available_points" label="可用积分" width="90" />
-        <el-table-column prop="created_at" label="创建时间" width="160" />
-        <el-table-column label="账号状态" width="110">
-          <template #default="{ row }">
-            <el-tag
-              :type="(row.status || 'active') === 'active' ? 'success' : 'warning'"
-              size="small"
-            >
-              {{ (row.status || 'active') === 'active' ? '已激活' : '待审批' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="240" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="warning" @click="handleResetPassword(row)">重置密码</el-button>
-            <el-button
-              v-if="(row.status || 'active') === 'pending'"
-              link
-              type="success"
-              @click="handleApprove(row)"
-            >批准登舰</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+            <div class="user-card-info">
+              <div class="user-card-name">{{ row.real_name }}</div>
+              <div class="user-card-username">@{{ row.username }}</div>
+              <div class="user-card-tags">
+                <el-tag :type="row.role === 'admin' ? 'danger' : 'primary'" size="small">
+                  {{ row.role === 'admin' ? (row.is_super_admin ? '👑 超级管理员' : '管理员') : '普通用户' }}
+                </el-tag>
+                <el-tag v-if="row.is_child" type="warning" size="small">🚀 宇航员</el-tag>
+                <el-tag
+                  :type="(row.status || 'active') === 'active' ? 'success' : 'warning'"
+                  size="small"
+                >
+                  {{ (row.status || 'active') === 'active' ? '已激活' : '待审批' }}
+                </el-tag>
+              </div>
+            </div>
+            <!-- 右侧积分 -->
+            <div class="user-card-points">
+              <div class="user-card-points-val">{{ row.available_points }}</div>
+              <div class="user-card-points-label">可用积分</div>
+            </div>
+          </div>
+
+          <!-- 卡片底部：次要信息 + 操作按钮 -->
+          <div class="user-card-bottom">
+            <div class="user-card-meta">
+              <span v-if="row.phone">📱 {{ row.phone }}</span>
+              <span>🕐 {{ row.created_at }}</span>
+            </div>
+            <div class="user-card-actions">
+              <el-button size="small" type="primary" plain @click="handleEdit(row)">编辑</el-button>
+              <el-button size="small" type="warning" plain @click="handleResetPassword(row)">重置密码</el-button>
+              <el-button
+                v-if="(row.status || 'active') === 'pending'"
+                size="small"
+                type="success"
+                plain
+                @click="handleApprove(row)"
+              >批准登舰</el-button>
+            </div>
+          </div>
+        </div>
+        <el-empty v-if="!loading && users.length === 0" description="暂无用户数据" />
       </div>
 
       <el-pagination
@@ -75,14 +130,14 @@
         v-model:current-page="page"
         v-model:page-size="pageSize"
         :total="total"
-        layout="total, prev, pager, next, jumper"
+        :layout="isMobile ? 'prev, pager, next' : 'total, prev, pager, next, jumper'"
         @current-change="loadUsers"
         class="pagination"
       />
     </el-card>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="520px">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" :width="dialogWidth">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <!-- 头像选择区 -->
         <el-form-item label="头像">
@@ -181,7 +236,7 @@
     </el-dialog>
 
     <!-- 重置密码对话框 -->
-    <el-dialog v-model="resetPasswordDialogVisible" title="重置密码" width="400px">
+    <el-dialog v-model="resetPasswordDialogVisible" title="重置密码" :width="resetDialogWidth">
       <el-form :model="resetPasswordForm" label-width="80px">
         <el-alert
           :title="`正在为用户 ${resetPasswordForm.username} 重置密码`"
@@ -216,7 +271,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Upload } from '@element-plus/icons-vue'
 import api from '@/utils/api'
@@ -243,6 +298,14 @@ const keyword = ref('')
 const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
+
+// 响应式断点
+const isMobile = ref(window.innerWidth <= 768)
+const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
+
+// dialog 宽度：移动端 92%，PC 端固定像素
+const dialogWidth = computed(() => isMobile.value ? '92%' : '520px')
+const resetDialogWidth = computed(() => isMobile.value ? '92%' : '400px')
 
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增用户')
@@ -405,8 +468,6 @@ const handleResetPasswordSubmit = async () => {
   }
 }
 
-onMounted(() => { loadUsers() })
-
 const handleApprove = async (row) => {
   try {
     await api.put(`/users/${row.id}/status`, { status: 'active' })
@@ -416,6 +477,15 @@ const handleApprove = async (row) => {
     ElMessage.error('操作失败，请重试')
   }
 }
+
+onMounted(() => {
+  loadUsers()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 </script>
 
 <style scoped>
@@ -435,7 +505,25 @@ const handleApprove = async (row) => {
   justify-content: flex-end;
 }
 
-/* 表格头像 */
+/* ===== PC / 移动 互斥显示 ===== */
+.pc-only   { display: block; }
+.mobile-only { display: none; }
+
+@media (max-width: 768px) {
+  .pc-only   { display: none; }
+  .mobile-only { display: block; }
+
+  .admin-users { padding: 0; }
+
+  .search-form { margin-bottom: 12px; }
+
+  .pagination {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+/* ===== 表格头像 ===== */
 .table-avatar {
   width: 36px;
   height: 36px;
@@ -450,7 +538,124 @@ const handleApprove = async (row) => {
 }
 .table-avatar-emoji { line-height: 1; }
 
-/* 弹窗头像编辑区 */
+.table-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== 移动端用户卡片 ===== */
+.mobile-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 60px;
+}
+
+.user-card {
+  background: linear-gradient(135deg, #faf8ff 0%, #fff5fa 100%);
+  border: 1px solid #e8e0f8;
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 2px 10px rgba(123, 104, 238, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.user-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B9D22, #7B68EE22);
+  border: 2px solid #7B68EE33;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.user-card-emoji { line-height: 1; }
+
+.user-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-card-username {
+  font-size: 12px;
+  color: #999;
+}
+
+.user-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.user-card-points {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.user-card-points-val {
+  font-size: 22px;
+  font-weight: 900;
+  color: #FF6B9D;
+  line-height: 1;
+}
+
+.user-card-points-label {
+  font-size: 11px;
+  color: #bbb;
+  margin-top: 2px;
+}
+
+.user-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid #f0e8f8;
+  padding-top: 10px;
+}
+
+.user-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: #bbb;
+}
+
+.user-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ===== 弹窗头像编辑区 ===== */
 .avatar-editor {
   display: flex;
   align-items: flex-start;
@@ -504,12 +709,7 @@ const handleApprove = async (row) => {
   box-shadow: 0 0 0 3px rgba(255,107,157,0.2);
 }
 
-.table-scroll-wrapper {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* 图案密码编辑器 */
+/* ===== 图案密码编辑器 ===== */
 .pattern-editor { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 
 .pattern-icons {
@@ -560,5 +760,30 @@ const handleApprove = async (row) => {
   align-items: center;
   gap: 8px;
   font-size: 13px;
+}
+
+/* ===== 弹窗移动端适配 ===== */
+@media (max-width: 768px) {
+  :deep(.el-dialog) {
+    margin: 8px auto !important;
+    border-radius: 18px !important;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px 14px !important;
+  }
+
+  :deep(.el-form-item__label) {
+    font-size: 13px;
+  }
+
+  .avatar-editor {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pattern-icons {
+    max-width: 100%;
+  }
 }
 </style>

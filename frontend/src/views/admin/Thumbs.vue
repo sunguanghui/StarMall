@@ -121,38 +121,80 @@
         </div>
       </template>
 
-      <el-table :data="records" style="width: 100%" v-loading="loading">
-        <el-table-column prop="user_name" label="用户" width="120" />
-        <el-table-column prop="thumb_type_name" label="类型" width="150" />
-        <el-table-column label="能量" width="80">
-          <template #default="{ row }">
-            <span :class="{ 'negative-points': row.points < 0 }">{{ row.points }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="reason" label="原因" show-overflow-tooltip />
-        <el-table-column prop="parent_message" label="舰长寄语" show-overflow-tooltip />
-        <el-table-column prop="given_by_name" label="赋能官 ✨" width="120" />
-        <el-table-column prop="created_at" label="发放时间" width="180" />
-        <el-table-column label="操作" width="100" fixed="right">
-          <template #default="{ row }">
+      <!-- ===== PC 端表格（> 768px） ===== -->
+      <div class="pc-only">
+        <el-table :data="records" style="width: 100%" v-loading="loading">
+          <el-table-column prop="user_name" label="用户" width="120" />
+          <el-table-column prop="thumb_type_name" label="类型" width="150" />
+          <el-table-column label="能量" width="80">
+            <template #default="{ row }">
+              <span :class="{ 'negative-points': row.points < 0 }">{{ row.points }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="reason" label="原因" show-overflow-tooltip />
+          <el-table-column prop="parent_message" label="舰长寄语" show-overflow-tooltip />
+          <el-table-column prop="given_by_name" label="赋能官 ✨" width="120" />
+          <el-table-column prop="created_at" label="发放时间" width="180" />
+          <el-table-column label="操作" width="100" fixed="right">
+            <template #default="{ row }">
+              <el-button
+                v-if="isUndoable(row)"
+                link
+                type="danger"
+                size="small"
+                :loading="undoing === row.id"
+                @click="handleUndo(row)"
+              >后悔药</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
+      <div class="mobile-only mobile-card-list" v-loading="loading">
+        <div
+          v-for="row in records"
+          :key="row.id"
+          class="record-card"
+          :class="{ 'record-card-punish': row.points < 0 }"
+        >
+          <div class="record-card-top">
+            <div class="record-card-left">
+              <span class="record-user">{{ row.user_name }}</span>
+              <span class="record-type">{{ row.thumb_type_name }}</span>
+            </div>
+            <span :class="['record-points', row.points < 0 ? 'negative-points' : 'positive-points']">
+              {{ row.points > 0 ? '+' : '' }}{{ row.points }}
+            </span>
+          </div>
+
+          <div v-if="row.reason" class="record-reason">{{ row.reason }}</div>
+          <div v-if="row.parent_message" class="record-message">💬 舰长寄语：{{ row.parent_message }}</div>
+
+          <div class="record-card-bottom">
+            <div class="record-meta">
+              <span>✨ {{ row.given_by_name }}</span>
+              <span>{{ row.created_at }}</span>
+            </div>
             <el-button
               v-if="isUndoable(row)"
-              link
-              type="danger"
               size="small"
+              type="danger"
+              plain
               :loading="undoing === row.id"
               @click="handleUndo(row)"
             >后悔药</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          </div>
+        </div>
+        <el-empty v-if="!loading && records.length === 0" description="暂无发放记录" />
+      </div>
 
       <el-pagination
         v-if="total > 0"
         v-model:current-page="page"
         v-model:page-size="pageSize"
         :total="total"
-        layout="total, prev, pager, next"
+        :layout="isMobile ? 'prev, pager, next' : 'total, prev, pager, next'"
         @current-change="loadRecords"
         class="pagination"
       />
@@ -161,7 +203,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Star, Promotion } from '@element-plus/icons-vue'
 import api from '@/utils/api'
@@ -171,6 +213,9 @@ const submitting = ref(false)
 const searchLoading = ref(false)
 const userOptions = ref([])
 const undoing = ref(null)
+
+const isMobile = ref(window.innerWidth <= 768)
+const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
 
 const punishPresets = [
   { label: '陨石撞击 (-2)', points: -2 },
@@ -319,7 +364,14 @@ const loadRecords = async () => {
   }
 }
 
-onMounted(() => { loadRecords() })
+onMounted(() => {
+  loadRecords()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 </script>
 
 <style scoped>
@@ -335,6 +387,11 @@ onMounted(() => { loadRecords() })
 
 .negative-points {
   color: #f56c6c;
+  font-weight: bold;
+}
+
+.positive-points {
+  color: #67c23a;
   font-weight: bold;
 }
 
@@ -365,5 +422,107 @@ onMounted(() => { loadRecords() })
 .punish-preview {
   font-size: 13px;
   font-weight: 700;
+}
+
+/* ===== PC / 移动 互斥显示 ===== */
+.pc-only     { display: block; }
+.mobile-only { display: none; }
+
+@media (max-width: 768px) {
+  .pc-only     { display: none; }
+  .mobile-only { display: block; }
+
+  .pagination {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+/* ===== 移动端发放记录卡片 ===== */
+.mobile-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 60px;
+}
+
+.record-card {
+  background: linear-gradient(135deg, #f0fff4 0%, #f8fff0 100%);
+  border: 1px solid #d4edda;
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(103, 194, 58, 0.08);
+}
+
+.record-card-punish {
+  background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);
+  border-color: #f56c6c44;
+  box-shadow: 0 2px 8px rgba(245, 108, 108, 0.1);
+}
+
+.record-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.record-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.record-user {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+.record-type {
+  font-size: 12px;
+  color: #999;
+}
+
+.record-points {
+  font-size: 24px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.record-reason {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.record-message {
+  font-size: 12px;
+  color: #666;
+  background: #f0f8ff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  border-left: 3px solid #4ECDC4;
+}
+
+.record-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.record-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: #bbb;
 }
 </style>

@@ -74,7 +74,7 @@
     <el-dialog
       v-model="exchangeDialogVisible"
       :title="selectedProduct ? (selectedProduct.is_blind_box ? `🎁 开启盲盒：${selectedProduct.name}` : `兑换 ${selectedProduct.name}`) : '兑换商品'"
-      width="420px"
+      :width="exchangeDialogWidth"
       destroy-on-close
     >
       <div v-if="selectedProduct" class="exchange-dialog-body">
@@ -123,7 +123,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Picture } from '@element-plus/icons-vue'
 import api from '@/utils/api'
@@ -138,6 +138,9 @@ const page = ref(1)
 const pageSize = ref(12)
 const total = ref(0)
 const exchangeDialogVisible = ref(false)
+const isMobile = ref(window.innerWidth <= 768)
+const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
+const exchangeDialogWidth = computed(() => isMobile.value ? '92%' : '420px')
 const selectedProduct = ref(null)
 const exchangeQuantity = ref(1)
 const exchangeSubmitting = ref(false)
@@ -229,6 +232,11 @@ watch(maxExchangeQuantity, (newMax) => {
 
 onMounted(() => {
   loadProducts()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 

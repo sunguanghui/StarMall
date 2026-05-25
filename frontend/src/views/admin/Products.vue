@@ -67,7 +67,7 @@
       />
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" :width="dialogWidth">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="商品名称" prop="name">
           <el-input v-model="form.name" />
@@ -119,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import api from '@/utils/api'
@@ -137,6 +137,9 @@ const pageSize = ref(20)
 const total = ref(0)
 
 const dialogVisible = ref(false)
+const isMobile = ref(window.innerWidth <= 768)
+const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
+const dialogWidth = computed(() => isMobile.value ? '92%' : '600px')
 const dialogTitle = ref('新增商品')
 const formRef = ref(null)
 const submitting = ref(false)
@@ -257,6 +260,11 @@ const handleUploadError = () => {
 
 onMounted(() => {
   loadProducts()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 

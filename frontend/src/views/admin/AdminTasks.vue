@@ -51,7 +51,7 @@
     </el-card>
 
     <!-- 新增/编辑任务对话框 -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="480px">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" :width="dialogWidth">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="任务名称" prop="title">
           <el-input v-model="form.title" placeholder="请输入任务名称" />
@@ -89,7 +89,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import api from '@/utils/api'
@@ -102,6 +102,9 @@ const tasksLoading = ref(false)
 const adminOptions = ref([])
 
 const dialogVisible = ref(false)
+const isMobile = ref(window.innerWidth <= 768)
+const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
+const dialogWidth = computed(() => isMobile.value ? '92%' : '480px')
 const dialogTitle = ref('新增任务')
 const submitting = ref(false)
 const formRef = ref(null)
@@ -181,6 +184,11 @@ const handleSubmit = async () => {
 onMounted(() => {
   loadTasks()
   if (userStore.isSuperAdmin()) loadAdmins()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 

@@ -135,7 +135,7 @@
     </el-row>
 
     <!-- 快速赋能弹窗 -->
-    <el-dialog v-model="boostVisible" :title="`⚡ 快速赋能 — ${boostTarget?.real_name}`" width="420px">
+    <el-dialog v-model="boostVisible" :title="`⚡ 快速赋能 — ${boostTarget?.real_name}`" :width="dialogWidth">
       <el-form :model="boostForm" label-width="80px">
         <el-form-item label="奖励类型">
           <el-radio-group v-model="boostForm.thumb_type">
@@ -159,7 +159,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import api from '@/utils/api'
@@ -189,6 +189,9 @@ const activityLoading = ref(false)
 
 // 快速赋能
 const boostVisible = ref(false)
+const isMobile = ref(window.innerWidth <= 768)
+const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
+const dialogWidth = computed(() => isMobile.value ? '92%' : '420px')
 const boostTarget = ref(null)
 const boosting = ref(false)
 const boostForm = reactive({ thumb_type: 'single', reason: '', parent_message: '' })
@@ -278,6 +281,11 @@ onMounted(() => {
   loadRadar()
   loadCrew()
   loadActivities()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
