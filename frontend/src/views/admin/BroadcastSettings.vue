@@ -232,12 +232,12 @@ const fetchSettings = async () => {
 
 const fetchUsers = async () => {
   try {
-    const res = await api.get('/users', { params: { role: 'user', per_page: 200 } })
+    const res = await api.get('/users', { params: { per_page: 200 } })
     if (res.code === 200) {
       userList.value = (res.data.list || []).filter(u => u.is_child)
     }
   } catch {
-    // 静默处理
+    ElMessage.error('加载宇航员列表失败')
   }
 }
 
