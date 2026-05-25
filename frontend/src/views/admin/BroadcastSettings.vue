@@ -234,7 +234,7 @@ const fetchUsers = async () => {
   try {
     const res = await api.get('/users', { params: { per_page: 200 } })
     if (res.code === 200) {
-      userList.value = (res.data.list || []).filter(u => u.is_child)
+      userList.value = (res.data.list || []).filter(u => u.role === 'user')
     }
   } catch {
     ElMessage.error('加载宇航员列表失败')
