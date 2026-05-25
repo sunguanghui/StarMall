@@ -13,7 +13,7 @@
 
       <el-form :inline="true" class="search-form">
         <el-form-item label="关键词">
-          <el-input v-model="keyword" placeholder="乘员代号/宇航员姓名" clearable @keyup.enter="loadUsers" />
+          <el-input v-model="keyword" placeholder="乘员代号/姓名" clearable @keyup.enter="loadUsers" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadUsers">查询</el-button>
@@ -24,7 +24,7 @@
       <div class="desktop-only-wrapper">
         <div class="table-scroll-wrapper">
           <el-table :data="users" style="width: 100%" v-loading="loading">
-            <el-table-column label="舰员图标" width="70">
+            <el-table-column label="头像" width="70">
               <template #default="{ row }">
                 <div class="table-avatar">
                   <span v-if="!isUrl(row.avatar)" class="table-avatar-emoji">{{ getEmoji(row.avatar) }}</span>
@@ -33,13 +33,13 @@
               </template>
             </el-table-column>
             <el-table-column prop="username" label="乘员代号" width="110" />
-            <el-table-column prop="real_name" label="宇航员姓名" width="100" />
+            <el-table-column prop="real_name" label="姓名" width="100" />
             <el-table-column prop="email" label="星际邮箱" show-overflow-tooltip />
             <el-table-column prop="phone" label="通讯频道" width="130" />
             <el-table-column prop="role" label="舰队职务" width="130">
               <template #default="{ row }">
                 <el-tag :type="row.role === 'admin' ? 'danger' : 'primary'" size="small">
-                  {{ row.role === 'admin' ? (row.is_super_admin ? '👑 舰队总指挥' : '领航员') : '普通乘员' }}
+                  {{ row.role === 'admin' ? (row.is_super_admin ? '👑 舰长' : '领航员') : '普通乘员' }}
                 </el-tag>
                 <el-tag v-if="row.is_child" type="warning" size="small" style="margin-left:4px;">🚀 宇航员</el-tag>
               </template>
@@ -87,7 +87,7 @@
                 <div class="user-card-username">@{{ row.username }}</div>
                 <div class="user-card-tags">
                   <el-tag :type="row.role === 'admin' ? 'danger' : 'primary'" size="small">
-                    {{ row.role === 'admin' ? (row.is_super_admin ? '👑 舰队总指挥' : '领航员') : '普通乘员' }}
+                    {{ row.role === 'admin' ? (row.is_super_admin ? '👑 舰长' : '领航员') : '普通乘员' }}
                   </el-tag>
                   <el-tag v-if="row.is_child" type="warning" size="small">🚀 宇航员</el-tag>
                   <el-tag
@@ -140,7 +140,7 @@
     <!-- 招募/校准乘员对话框 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" :width="dialogWidth">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-        <el-form-item label="舰员图标">
+        <el-form-item label="头像">
           <div class="avatar-editor">
             <div class="avatar-preview">
               <span v-if="!isUrl(form.avatar)" class="preview-emoji">{{ getEmoji(form.avatar) }}</span>
@@ -176,7 +176,7 @@
         <el-form-item label="通行密钥" prop="password">
           <el-input v-model="form.password" type="password" :placeholder="form.id ? '不修改请留空' : '请输入通行密钥'" />
         </el-form-item>
-        <el-form-item label="宇航员姓名" prop="real_name">
+        <el-form-item label="姓名" prop="real_name">
           <el-input v-model="form.real_name" />
         </el-form-item>
         <el-form-item label="星际邮箱" prop="email">
@@ -191,9 +191,9 @@
             <el-option label="领航员" value="admin" />
           </el-select>
         </el-form-item>
-        <el-form-item label="舰队总指挥" v-if="form.role === 'admin' && userStore.isSuperAdmin()">
+        <el-form-item label="舰长" v-if="form.role === 'admin' && userStore.isSuperAdmin()">
           <el-switch v-model="form.is_super_admin" />
-          <span style="margin-left:10px;font-size:12px;color:#aaa;">舰队总指挥拥有全部权限</span>
+          <span style="margin-left:10px;font-size:12px;color:#aaa;">舰长拥有全部权限</span>
         </el-form-item>
 
         <template v-if="form.role === 'user'">
@@ -346,7 +346,7 @@ const togglePatternIcon = (idx) => {
 const rules = computed(() => ({
   username: [{ required: true, message: '请输入乘员代号', trigger: 'blur' }],
   password: form.id ? [] : [{ required: true, message: '请输入通行密钥', trigger: 'blur' }],
-  real_name: [{ required: true, message: '请输入宇航员姓名', trigger: 'blur' }]
+  real_name: [{ required: true, message: '请输入姓名', trigger: 'blur' }]
 }))
 
 const loadUsers = async () => {

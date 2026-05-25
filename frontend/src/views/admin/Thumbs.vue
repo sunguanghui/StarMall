@@ -8,12 +8,12 @@
       </template>
 
       <el-form ref="formRef" :model="form" :rules="rules" label-width="130px" style="max-width: 620px;">
-        <el-form-item label="选择用户" prop="user_id">
+        <el-form-item label="选择目标乘员" prop="user_id">
           <el-select
             v-model="form.user_id"
             filterable
             remote
-            placeholder="请输入用户名搜索"
+            placeholder="请输入乘员代号搜寻"
             :remote-method="searchUsers"
             :loading="searchLoading"
             style="width: 100%"
@@ -117,7 +117,7 @@
     <el-card style="margin-top: 20px;">
       <template #header>
         <div class="card-header">
-          <span>最近发放记录</span>
+          <span>近期能量调度日志</span>
         </div>
       </template>
 
@@ -125,7 +125,7 @@
       <div class="desktop-only-wrapper">
         <div class="table-scroll-wrapper">
           <el-table :data="records" style="width: 100%" v-loading="loading">
-            <el-table-column prop="user_name" label="用户" width="120" />
+            <el-table-column prop="user_name" label="目标乘员" width="120" />
             <el-table-column prop="thumb_type_name" label="类型" width="150" />
             <el-table-column label="能量" width="80">
               <template #default="{ row }">
@@ -136,7 +136,7 @@
             <el-table-column prop="parent_message" label="舰长寄语" show-overflow-tooltip />
             <el-table-column prop="given_by_name" label="赋能官 ✨" width="120" />
             <el-table-column prop="created_at" label="发放时间" width="180" />
-            <el-table-column label="操作" width="100" fixed="right">
+            <el-table-column label="紧急干预" width="100" fixed="right">
               <template #default="{ row }">
                 <el-button
                   v-if="isUndoable(row)"
