@@ -130,7 +130,7 @@
         <el-form-item label="电话" prop="phone">
           <el-input v-model="form.phone" />
         </el-form-item>
-        <el-form-item label="角色" prop="role" v-if="!form.id">
+        <el-form-item label="角色" prop="role" v-if="userStore.isSuperAdmin()">
           <el-select v-model="form.role">
             <el-option label="普通用户" value="user" />
             <el-option label="管理员" value="admin" />

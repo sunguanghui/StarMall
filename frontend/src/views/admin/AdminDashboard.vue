@@ -53,7 +53,7 @@
             <div v-for="item in pendingItems" :key="item.key" class="pending-item" @click="$router.push(item.route)">
               <el-tag :type="item.tagType" size="small" class="pending-tag">{{ item.tag }}</el-tag>
               <span class="pending-text">{{ item.text }}</span>
-              <span class="pending-time">{{ item.time?.slice(0, 10) }}</span>
+              <span class="pending-time">{{ item.time }}</span>
             </div>
           </div>
         </el-card>
@@ -112,7 +112,7 @@
               <el-timeline-item
                 v-for="(item, index) in activities"
                 :key="index"
-                :timestamp="item.created_at?.slice(0, 10)"
+                :timestamp="item.created_at"
                 placement="top"
                 :type="item.points > 0 ? 'success' : 'danger'"
                 size="normal"

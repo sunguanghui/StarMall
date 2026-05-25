@@ -396,13 +396,14 @@ def register():
     if User.query.filter_by(username=username).first():
         return jsonify({'code': 400, 'message': '用户名已存在'}), 400
 
-    # 创建新用户，前台注册默认待审批
+    # 创建新用户，前台注册强制锁定安全属性，严防批量赋值越权
     user = User(
         username=username,
         real_name=real_name,
         email=email,
         phone=phone,
         role='user',
+        is_super_admin=False,
         total_points=0,
         available_points=0,
         status='pending'
