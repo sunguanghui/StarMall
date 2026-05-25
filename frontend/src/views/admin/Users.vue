@@ -21,108 +21,112 @@
       </el-form>
 
       <!-- ===== PC 端表格（> 768px） ===== -->
-      <div class="table-scroll-wrapper pc-table-view">
-        <el-table :data="users" style="width: 100%" v-loading="loading">
-          <el-table-column label="头像" width="70">
-            <template #default="{ row }">
-              <div class="table-avatar">
-                <span v-if="!isUrl(row.avatar)" class="table-avatar-emoji">{{ getEmoji(row.avatar) }}</span>
-                <el-avatar v-else :size="36" :src="row.avatar" />
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="username" label="用户名" width="110" />
-          <el-table-column prop="real_name" label="姓名" width="100" />
-          <el-table-column prop="email" label="邮箱" show-overflow-tooltip />
-          <el-table-column prop="phone" label="电话" width="130" />
-          <el-table-column prop="role" label="角色" width="130">
-            <template #default="{ row }">
-              <el-tag :type="row.role === 'admin' ? 'danger' : 'primary'" size="small">
-                {{ row.role === 'admin' ? (row.is_super_admin ? '👑 超级管理员' : '管理员') : '普通用户' }}
-              </el-tag>
-              <el-tag v-if="row.is_child" type="warning" size="small" style="margin-left:4px;">🚀 宇航员</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="total_points" label="总积分" width="90" />
-          <el-table-column prop="available_points" label="可用积分" width="90" />
-          <el-table-column prop="created_at" label="创建时间" width="160" />
-          <el-table-column label="账号状态" width="110">
-            <template #default="{ row }">
-              <el-tag
-                :type="(row.status || 'active') === 'active' ? 'success' : 'warning'"
-                size="small"
-              >
-                {{ (row.status || 'active') === 'active' ? '已激活' : '待审批' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="240" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-              <el-button link type="warning" @click="handleResetPassword(row)">重置密码</el-button>
-              <el-button
-                v-if="(row.status || 'active') === 'pending'"
-                link
-                type="success"
-                @click="handleApprove(row)"
-              >批准登舰</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-
-      <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
-      <div class="mobile-card-view mobile-card-list" v-loading="loading">
-        <div v-for="row in users" :key="row.id" class="user-card">
-          <!-- 卡片顶部：头像 + 姓名 + 角色标签 -->
-          <div class="user-card-top">
-            <div class="user-card-avatar">
-              <span v-if="!isUrl(row.avatar)" class="user-card-emoji">{{ getEmoji(row.avatar) }}</span>
-              <el-avatar v-else :size="44" :src="row.avatar" />
-            </div>
-            <div class="user-card-info">
-              <div class="user-card-name">{{ row.real_name }}</div>
-              <div class="user-card-username">@{{ row.username }}</div>
-              <div class="user-card-tags">
+      <div class="desktop-only-wrapper">
+        <div class="table-scroll-wrapper">
+          <el-table :data="users" style="width: 100%" v-loading="loading">
+            <el-table-column label="头像" width="70">
+              <template #default="{ row }">
+                <div class="table-avatar">
+                  <span v-if="!isUrl(row.avatar)" class="table-avatar-emoji">{{ getEmoji(row.avatar) }}</span>
+                  <el-avatar v-else :size="36" :src="row.avatar" />
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="username" label="用户名" width="110" />
+            <el-table-column prop="real_name" label="姓名" width="100" />
+            <el-table-column prop="email" label="邮箱" show-overflow-tooltip />
+            <el-table-column prop="phone" label="电话" width="130" />
+            <el-table-column prop="role" label="角色" width="130">
+              <template #default="{ row }">
                 <el-tag :type="row.role === 'admin' ? 'danger' : 'primary'" size="small">
                   {{ row.role === 'admin' ? (row.is_super_admin ? '👑 超级管理员' : '管理员') : '普通用户' }}
                 </el-tag>
-                <el-tag v-if="row.is_child" type="warning" size="small">🚀 宇航员</el-tag>
+                <el-tag v-if="row.is_child" type="warning" size="small" style="margin-left:4px;">🚀 宇航员</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="total_points" label="总积分" width="90" />
+            <el-table-column prop="available_points" label="可用积分" width="90" />
+            <el-table-column prop="created_at" label="创建时间" width="160" />
+            <el-table-column label="账号状态" width="110">
+              <template #default="{ row }">
                 <el-tag
                   :type="(row.status || 'active') === 'active' ? 'success' : 'warning'"
                   size="small"
                 >
                   {{ (row.status || 'active') === 'active' ? '已激活' : '待审批' }}
                 </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="240" fixed="right">
+              <template #default="{ row }">
+                <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+                <el-button link type="warning" @click="handleResetPassword(row)">重置密码</el-button>
+                <el-button
+                  v-if="(row.status || 'active') === 'pending'"
+                  link
+                  type="success"
+                  @click="handleApprove(row)"
+                >批准登舰</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+
+      <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
+      <div class="mobile-only-wrapper">
+        <div class="mobile-card-list" v-loading="loading">
+          <div v-for="row in users" :key="row.id" class="user-card">
+            <!-- 卡片顶部：头像 + 姓名 + 角色标签 -->
+            <div class="user-card-top">
+              <div class="user-card-avatar">
+                <span v-if="!isUrl(row.avatar)" class="user-card-emoji">{{ getEmoji(row.avatar) }}</span>
+                <el-avatar v-else :size="44" :src="row.avatar" />
+              </div>
+              <div class="user-card-info">
+                <div class="user-card-name">{{ row.real_name }}</div>
+                <div class="user-card-username">@{{ row.username }}</div>
+                <div class="user-card-tags">
+                  <el-tag :type="row.role === 'admin' ? 'danger' : 'primary'" size="small">
+                    {{ row.role === 'admin' ? (row.is_super_admin ? '👑 超级管理员' : '管理员') : '普通用户' }}
+                  </el-tag>
+                  <el-tag v-if="row.is_child" type="warning" size="small">🚀 宇航员</el-tag>
+                  <el-tag
+                    :type="(row.status || 'active') === 'active' ? 'success' : 'warning'"
+                    size="small"
+                  >
+                    {{ (row.status || 'active') === 'active' ? '已激活' : '待审批' }}
+                  </el-tag>
+                </div>
+              </div>
+              <!-- 右侧积分 -->
+              <div class="user-card-points">
+                <div class="user-card-points-val">{{ row.available_points }}</div>
+                <div class="user-card-points-label">可用积分</div>
               </div>
             </div>
-            <!-- 右侧积分 -->
-            <div class="user-card-points">
-              <div class="user-card-points-val">{{ row.available_points }}</div>
-              <div class="user-card-points-label">可用积分</div>
-            </div>
-          </div>
 
-          <!-- 卡片底部：次要信息 + 操作按钮 -->
-          <div class="user-card-bottom">
-            <div class="user-card-meta">
-              <span v-if="row.phone">📱 {{ row.phone }}</span>
-              <span>🕐 {{ row.created_at }}</span>
-            </div>
-            <div class="user-card-actions">
-              <el-button size="small" type="primary" plain @click="handleEdit(row)">编辑</el-button>
-              <el-button size="small" type="warning" plain @click="handleResetPassword(row)">重置密码</el-button>
-              <el-button
-                v-if="(row.status || 'active') === 'pending'"
-                size="small"
-                type="success"
-                plain
-                @click="handleApprove(row)"
-              >批准登舰</el-button>
+            <!-- 卡片底部：次要信息 + 操作按钮 -->
+            <div class="user-card-bottom">
+              <div class="user-card-meta">
+                <span v-if="row.phone">📱 {{ row.phone }}</span>
+                <span>🕐 {{ row.created_at }}</span>
+              </div>
+              <div class="user-card-actions">
+                <el-button size="small" type="primary" plain @click="handleEdit(row)">编辑</el-button>
+                <el-button size="small" type="warning" plain @click="handleResetPassword(row)">重置密码</el-button>
+                <el-button
+                  v-if="(row.status || 'active') === 'pending'"
+                  size="small"
+                  type="success"
+                  plain
+                  @click="handleApprove(row)"
+                >批准登舰</el-button>
+              </div>
             </div>
           </div>
+          <el-empty v-if="!loading && users.length === 0" description="暂无用户数据" />
         </div>
-        <el-empty v-if="!loading && users.length === 0" description="暂无用户数据" />
       </div>
 
       <el-pagination
@@ -299,11 +303,9 @@ const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 
-// 响应式断点
 const isMobile = ref(window.innerWidth <= 768)
 const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
 
-// dialog 宽度：移动端 92%，PC 端固定像素
 const dialogWidth = computed(() => isMobile.value ? '92%' : '520px')
 const resetDialogWidth = computed(() => isMobile.value ? '92%' : '400px')
 
@@ -505,40 +507,12 @@ onUnmounted(() => {
   justify-content: flex-end;
 }
 
-/* ===== PC / 移动 互斥显示 ===== */
-.pc-only   { display: block; }
-.mobile-only { display: none; }
-
 @media (max-width: 768px) {
-  .pc-only   { display: none; }
-  .mobile-only { display: block; }
-
   .admin-users { padding: 0; }
-
   .search-form { margin-bottom: 12px; }
-
   .pagination {
     justify-content: center;
     flex-wrap: wrap;
-  }
-}
-
-/* --- 响应式双轨渲染强制隔离 --- */
-/* 默认（PC端）：显示表格，隐藏卡片 */
-.pc-table-view {
-  display: block;
-}
-.mobile-card-view {
-  display: none;
-}
-
-/* 移动端（屏幕宽度小于 768px）：隐藏表格，显示卡片 */
-@media screen and (max-width: 767px) {
-  .pc-table-view {
-    display: none !important;
-  }
-  .mobile-card-view {
-    display: block !important;
   }
 }
 
@@ -803,6 +777,20 @@ onUnmounted(() => {
 
   .pattern-icons {
     max-width: 100%;
+  }
+}
+
+/* --- 响应式双轨渲染物理隔离 (终极版) --- */
+.mobile-only-wrapper {
+  display: none !important;
+}
+
+@media screen and (max-width: 768px) {
+  .desktop-only-wrapper {
+    display: none !important;
+  }
+  .mobile-only-wrapper {
+    display: block !important;
   }
 }
 </style>

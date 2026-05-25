@@ -19,102 +19,106 @@
       </template>
 
       <!-- ===== PC 端表格（> 768px） ===== -->
-      <div class="table-scroll-wrapper pc-table-view">
-        <el-table :data="logs" v-loading="loading" style="width:100%">
-          <el-table-column prop="user_name" label="宇航员" width="100" />
-          <el-table-column prop="task_title" label="任务名称" min-width="150" show-overflow-tooltip />
-          <el-table-column prop="task_type" label="类型" width="120">
-            <template #default="{ row }">
-              <el-tag :type="row.task_type === 'daily' ? 'primary' : 'warning'" size="small">
-                {{ row.task_type === 'daily' ? '📅 每日日常' : '🏆 阶段里程碑' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="energy_reward" label="奖励能量" width="100">
-            <template #default="{ row }">+{{ row.energy_reward }} ⚡</template>
-          </el-table-column>
-          <el-table-column prop="reviewer_name" label="负责赋能官" width="110">
-            <template #default="{ row }">
-              <span v-if="row.reviewer_name">{{ row.reviewer_name }}</span>
-              <span v-else class="text-muted">全体领航员</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="status_name" label="状态" width="90">
-            <template #default="{ row }">
-              <el-tag :type="statusTagType(row.status)" size="small">{{ row.status_name }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="created_at" label="提交时间" width="160" />
-          <el-table-column label="操作" width="180" fixed="right">
-            <template #default="{ row }">
-              <template v-if="row.status === 'pending'">
-                <el-button link type="success" @click="handleApprove(row)" :loading="operating === row.id">⚡ 能量注入</el-button>
-                <el-button link type="danger" @click="handleReject(row)" :loading="operating === row.id">🔄 驳回重试</el-button>
+      <div class="desktop-only-wrapper">
+        <div class="table-scroll-wrapper">
+          <el-table :data="logs" v-loading="loading" style="width:100%">
+            <el-table-column prop="user_name" label="宇航员" width="100" />
+            <el-table-column prop="task_title" label="任务名称" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="task_type" label="类型" width="120">
+              <template #default="{ row }">
+                <el-tag :type="row.task_type === 'daily' ? 'primary' : 'warning'" size="small">
+                  {{ row.task_type === 'daily' ? '📅 每日日常' : '🏆 阶段里程碑' }}
+                </el-tag>
               </template>
-              <span v-else class="text-muted">已处理</span>
-            </template>
-          </el-table-column>
-        </el-table>
+            </el-table-column>
+            <el-table-column prop="energy_reward" label="奖励能量" width="100">
+              <template #default="{ row }">+{{ row.energy_reward }} ⚡</template>
+            </el-table-column>
+            <el-table-column prop="reviewer_name" label="负责赋能官" width="110">
+              <template #default="{ row }">
+                <span v-if="row.reviewer_name">{{ row.reviewer_name }}</span>
+                <span v-else class="text-muted">全体领航员</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="status_name" label="状态" width="90">
+              <template #default="{ row }">
+                <el-tag :type="statusTagType(row.status)" size="small">{{ row.status_name }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="created_at" label="提交时间" width="160" />
+            <el-table-column label="操作" width="180" fixed="right">
+              <template #default="{ row }">
+                <template v-if="row.status === 'pending'">
+                  <el-button link type="success" @click="handleApprove(row)" :loading="operating === row.id">⚡ 能量注入</el-button>
+                  <el-button link type="danger" @click="handleReject(row)" :loading="operating === row.id">🔄 驳回重试</el-button>
+                </template>
+                <span v-else class="text-muted">已处理</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </div>
 
       <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
-      <div class="mobile-card-view mobile-card-list" v-loading="loading">
-        <div
-          v-for="row in logs"
-          :key="row.id"
-          class="approval-card"
-          :class="{
-            'approval-card--pending':  row.status === 'pending',
-            'approval-card--approved': row.status === 'approved',
-            'approval-card--rejected': row.status === 'rejected'
-          }"
-        >
-          <!-- 顶部：宇航员 + 任务名 + 状态标签 -->
-          <div class="approval-card__top">
-            <div class="approval-card__info">
-              <span class="approval-card__user">🧑‍🚀 {{ row.user_name }}</span>
-              <span class="approval-card__title">{{ row.task_title }}</span>
+      <div class="mobile-only-wrapper">
+        <div class="mobile-card-list" v-loading="loading">
+          <div
+            v-for="row in logs"
+            :key="row.id"
+            class="approval-card"
+            :class="{
+              'approval-card--pending':  row.status === 'pending',
+              'approval-card--approved': row.status === 'approved',
+              'approval-card--rejected': row.status === 'rejected'
+            }"
+          >
+            <!-- 顶部：宇航员 + 任务名 + 状态标签 -->
+            <div class="approval-card__top">
+              <div class="approval-card__info">
+                <span class="approval-card__user">🧑‍🚀 {{ row.user_name }}</span>
+                <span class="approval-card__title">{{ row.task_title }}</span>
+              </div>
+              <el-tag :type="statusTagType(row.status)" size="small" class="approval-card__status">
+                {{ row.status_name }}
+              </el-tag>
             </div>
-            <el-tag :type="statusTagType(row.status)" size="small" class="approval-card__status">
-              {{ row.status_name }}
-            </el-tag>
-          </div>
 
-          <!-- 中部：类型、奖励能量、负责赋能官 -->
-          <div class="approval-card__meta">
-            <el-tag :type="row.task_type === 'daily' ? 'primary' : 'warning'" size="small">
-              {{ row.task_type === 'daily' ? '📅 每日日常' : '🏆 阶段里程碑' }}
-            </el-tag>
-            <span class="approval-card__energy">+{{ row.energy_reward }} ⚡</span>
-            <span class="approval-card__reviewer">
-              {{ row.reviewer_name || '全体领航员' }}
-            </span>
-          </div>
+            <!-- 中部：类型、奖励能量、负责赋能官 -->
+            <div class="approval-card__meta">
+              <el-tag :type="row.task_type === 'daily' ? 'primary' : 'warning'" size="small">
+                {{ row.task_type === 'daily' ? '📅 每日日常' : '🏆 阶段里程碑' }}
+              </el-tag>
+              <span class="approval-card__energy">+{{ row.energy_reward }} ⚡</span>
+              <span class="approval-card__reviewer">
+                {{ row.reviewer_name || '全体领航员' }}
+              </span>
+            </div>
 
-          <!-- 提交时间 -->
-          <div class="approval-card__time">🕐 {{ row.created_at }}</div>
+            <!-- 提交时间 -->
+            <div class="approval-card__time">🕐 {{ row.created_at }}</div>
 
-          <!-- 底部操作按钮 -->
-          <div class="approval-card__actions">
-            <template v-if="row.status === 'pending'">
-              <el-button
-                type="success"
-                size="small"
-                :loading="operating === row.id"
-                @click="handleApprove(row)"
-              >⚡ 能量注入</el-button>
-              <el-button
-                type="danger"
-                size="small"
-                plain
-                :loading="operating === row.id"
-                @click="handleReject(row)"
-              >🔄 驳回重试</el-button>
-            </template>
-            <span v-else class="text-muted">已处理</span>
+            <!-- 底部操作按钮 -->
+            <div class="approval-card__actions">
+              <template v-if="row.status === 'pending'">
+                <el-button
+                  type="success"
+                  size="small"
+                  :loading="operating === row.id"
+                  @click="handleApprove(row)"
+                >⚡ 能量注入</el-button>
+                <el-button
+                  type="danger"
+                  size="small"
+                  plain
+                  :loading="operating === row.id"
+                  @click="handleReject(row)"
+                >🔄 驳回重试</el-button>
+              </template>
+              <span v-else class="text-muted">已处理</span>
+            </div>
           </div>
+          <el-empty v-if="!loading && logs.length === 0" description="暂无审核记录" />
         </div>
-        <el-empty v-if="!loading && logs.length === 0" description="暂无审核记录" />
       </div>
 
       <el-pagination
@@ -204,10 +208,6 @@ onUnmounted(() => {
 .text-muted { color: #ccc; font-size: 13px; }
 .table-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-/* ===== PC / 移动互斥 ===== */
-.pc-only     { display: block; }
-.mobile-only { display: none; }
-
 .pagination {
   margin-top: 20px;
   display: flex;
@@ -215,31 +215,9 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
-  .pc-only     { display: none; }
-  .mobile-only { display: block; }
-
   .pagination {
     justify-content: center;
     flex-wrap: wrap;
-  }
-}
-
-/* --- 响应式双轨渲染强制隔离 --- */
-/* 默认（PC端）：显示表格，隐藏卡片 */
-.pc-table-view {
-  display: block;
-}
-.mobile-card-view {
-  display: none;
-}
-
-/* 移动端（屏幕宽度小于 768px）：隐藏表格，显示卡片 */
-@media screen and (max-width: 767px) {
-  .pc-table-view {
-    display: none !important;
-  }
-  .mobile-card-view {
-    display: block !important;
   }
 }
 
@@ -339,5 +317,19 @@ onUnmounted(() => {
   flex-wrap: wrap;
   padding-top: 6px;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* --- 响应式双轨渲染物理隔离 (终极版) --- */
+.mobile-only-wrapper {
+  display: none !important;
+}
+
+@media screen and (max-width: 768px) {
+  .desktop-only-wrapper {
+    display: none !important;
+  }
+  .mobile-only-wrapper {
+    display: block !important;
+  }
 }
 </style>

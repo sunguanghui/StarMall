@@ -19,88 +19,92 @@
       </template>
 
       <!-- ===== PC 端表格（> 768px） ===== -->
-      <div class="table-scroll-wrapper pc-table-view">
-        <el-table :data="wishlists" v-loading="loading" style="width:100%">
-          <el-table-column prop="user_name" label="宇航员" width="100" />
-          <el-table-column prop="title" label="心愿蓝图名称" min-width="160" show-overflow-tooltip />
-          <el-table-column prop="expected_points" label="期望能量" width="110">
-            <template #default="{ row }">{{ row.expected_points }} ⚡</template>
-          </el-table-column>
-          <el-table-column label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="statusTagType(row.status)" size="small">{{ row.status_name }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="created_at" label="提交时间" width="160" />
-          <el-table-column label="操作" width="200" fixed="right">
-            <template #default="{ row }">
-              <template v-if="row.status === 'pending'">
-                <el-button link type="success" @click="handleApprove(row)">🔬 批准研发</el-button>
-                <el-button link type="danger" @click="handleReject(row)">❌ 驳回申请</el-button>
+      <div class="desktop-only-wrapper">
+        <div class="table-scroll-wrapper">
+          <el-table :data="wishlists" v-loading="loading" style="width:100%">
+            <el-table-column prop="user_name" label="宇航员" width="100" />
+            <el-table-column prop="title" label="心愿蓝图名称" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="expected_points" label="期望能量" width="110">
+              <template #default="{ row }">{{ row.expected_points }} ⚡</template>
+            </el-table-column>
+            <el-table-column label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="statusTagType(row.status)" size="small">{{ row.status_name }}</el-tag>
               </template>
-              <span v-else class="text-muted">已处理</span>
-            </template>
-          </el-table-column>
-        </el-table>
+            </el-table-column>
+            <el-table-column prop="created_at" label="提交时间" width="160" />
+            <el-table-column label="操作" width="200" fixed="right">
+              <template #default="{ row }">
+                <template v-if="row.status === 'pending'">
+                  <el-button link type="success" @click="handleApprove(row)">🔬 批准研发</el-button>
+                  <el-button link type="danger" @click="handleReject(row)">❌ 驳回申请</el-button>
+                </template>
+                <span v-else class="text-muted">已处理</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </div>
 
       <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
-      <div class="mobile-card-view mobile-card-list" v-loading="loading">
-        <div
-          v-for="row in wishlists"
-          :key="row.id"
-          class="wish-card"
-          :class="{
-            'wish-card--pending':  row.status === 'pending',
-            'wish-card--approved': row.status === 'approved',
-            'wish-card--rejected': row.status === 'rejected'
-          }"
-        >
-          <!-- 顶部：心愿名称 + 状态标签 -->
-          <div class="wish-card__top">
-            <div class="wish-card__title-wrap">
-              <span class="wish-card__icon">💫</span>
-              <span class="wish-card__title">{{ row.title }}</span>
+      <div class="mobile-only-wrapper">
+        <div class="mobile-card-list" v-loading="loading">
+          <div
+            v-for="row in wishlists"
+            :key="row.id"
+            class="wish-card"
+            :class="{
+              'wish-card--pending':  row.status === 'pending',
+              'wish-card--approved': row.status === 'approved',
+              'wish-card--rejected': row.status === 'rejected'
+            }"
+          >
+            <!-- 顶部：心愿名称 + 状态标签 -->
+            <div class="wish-card__top">
+              <div class="wish-card__title-wrap">
+                <span class="wish-card__icon">💫</span>
+                <span class="wish-card__title">{{ row.title }}</span>
+              </div>
+              <el-tag :type="statusTagType(row.status)" size="small" class="wish-card__status">
+                {{ row.status_name }}
+              </el-tag>
             </div>
-            <el-tag :type="statusTagType(row.status)" size="small" class="wish-card__status">
-              {{ row.status_name }}
-            </el-tag>
-          </div>
 
-          <!-- 中部：宇航员 + 期望能量 -->
-          <div class="wish-card__meta">
-            <div class="wish-card__meta-item">
-              <span class="meta-label">申请人</span>
-              <span class="meta-value">🧑‍🚀 {{ row.user_name }}</span>
+            <!-- 中部：宇航员 + 期望能量 -->
+            <div class="wish-card__meta">
+              <div class="wish-card__meta-item">
+                <span class="meta-label">申请人</span>
+                <span class="meta-value">🧑‍🚀 {{ row.user_name }}</span>
+              </div>
+              <div class="wish-card__meta-item">
+                <span class="meta-label">期望能量</span>
+                <span class="meta-value energy">{{ row.expected_points }} ⚡</span>
+              </div>
             </div>
-            <div class="wish-card__meta-item">
-              <span class="meta-label">期望能量</span>
-              <span class="meta-value energy">{{ row.expected_points }} ⚡</span>
-            </div>
-          </div>
 
-          <!-- 提交时间 + 操作按钮 -->
-          <div class="wish-card__footer">
-            <span class="wish-card__time">🕐 {{ row.created_at }}</span>
-            <div class="wish-card__actions">
-              <template v-if="row.status === 'pending'">
-                <el-button
-                  type="success"
-                  size="small"
-                  @click="handleApprove(row)"
-                >🔬 批准研发</el-button>
-                <el-button
-                  type="danger"
-                  size="small"
-                  plain
-                  @click="handleReject(row)"
-                >❌ 驳回</el-button>
-              </template>
-              <span v-else class="text-muted">已处理</span>
+            <!-- 提交时间 + 操作按钮 -->
+            <div class="wish-card__footer">
+              <span class="wish-card__time">🕐 {{ row.created_at }}</span>
+              <div class="wish-card__actions">
+                <template v-if="row.status === 'pending'">
+                  <el-button
+                    type="success"
+                    size="small"
+                    @click="handleApprove(row)"
+                  >🔬 批准研发</el-button>
+                  <el-button
+                    type="danger"
+                    size="small"
+                    plain
+                    @click="handleReject(row)"
+                  >❌ 驳回</el-button>
+                </template>
+                <span v-else class="text-muted">已处理</span>
+              </div>
             </div>
           </div>
+          <el-empty v-if="!loading && wishlists.length === 0" description="暂无心愿蓝图" />
         </div>
-        <el-empty v-if="!loading && wishlists.length === 0" description="暂无心愿蓝图" />
       </div>
 
       <el-pagination
@@ -194,10 +198,6 @@ onUnmounted(() => {
 .text-muted { color: #ccc; font-size: 13px; }
 .table-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-/* ===== PC / 移动互斥 ===== */
-.pc-only     { display: block; }
-.mobile-only { display: none; }
-
 .pagination {
   margin-top: 20px;
   display: flex;
@@ -205,31 +205,9 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
-  .pc-only     { display: none; }
-  .mobile-only { display: block; }
-
   .pagination {
     justify-content: center;
     flex-wrap: wrap;
-  }
-}
-
-/* --- 响应式双轨渲染强制隔离 --- */
-/* 默认（PC端）：显示表格，隐藏卡片 */
-.pc-table-view {
-  display: block;
-}
-.mobile-card-view {
-  display: none;
-}
-
-/* 移动端（屏幕宽度小于 768px）：隐藏表格，显示卡片 */
-@media screen and (max-width: 767px) {
-  .pc-table-view {
-    display: none !important;
-  }
-  .mobile-card-view {
-    display: block !important;
   }
 }
 
@@ -349,5 +327,19 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* --- 响应式双轨渲染物理隔离 (终极版) --- */
+.mobile-only-wrapper {
+  display: none !important;
+}
+
+@media screen and (max-width: 768px) {
+  .desktop-only-wrapper {
+    display: none !important;
+  }
+  .mobile-only-wrapper {
+    display: block !important;
+  }
 }
 </style>

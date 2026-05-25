@@ -27,102 +27,106 @@
       </el-form>
 
       <!-- ===== PC 端表格（> 768px） ===== -->
-      <div class="pc-table-view">
-        <el-table :data="products" style="width: 100%" v-loading="loading">
-          <el-table-column prop="name" label="商品名称" show-overflow-tooltip />
-          <el-table-column prop="points_required" label="所需能量" width="100" />
-          <el-table-column prop="stock" label="库存" width="80" />
-          <el-table-column label="盲盒" width="70">
-            <template #default="{ row }">
-              <el-tag v-if="row.is_blind_box" type="warning" size="small">🎁</el-tag>
-              <span v-else style="color: #ccc;">—</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="status_name" label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="row.status === 'on_shelf' ? 'success' : 'info'" size="small">
-                {{ row.status_name }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="sort_order" label="排序" width="80" />
-          <el-table-column prop="created_at" label="创建时间" width="180" />
-          <el-table-column label="操作" width="220" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-              <el-button link type="warning" @click="handleToggleStatus(row)">
-                {{ row.status === 'on_shelf' ? '下架' : '上架' }}
-              </el-button>
-              <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-
-      <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
-      <div class="mobile-card-view mobile-card-list" v-loading="loading">
-        <div
-          v-for="row in products"
-          :key="row.id"
-          class="product-card"
-          :class="{ 'product-card--off': row.status !== 'on_shelf' }"
-        >
-          <!-- 顶部：图片 + 名称 + 状态标签 -->
-          <div class="product-card__top">
-            <div class="product-card__img-wrap">
-              <img
-                v-if="row.image_url"
-                :src="row.image_url"
-                class="product-card__img"
-                alt=""
-              />
-              <div v-else class="product-card__img-placeholder">🛒</div>
-            </div>
-            <div class="product-card__info">
-              <div class="product-card__name">
-                {{ row.name }}
-                <el-tag v-if="row.is_blind_box" type="warning" size="small" style="margin-left:4px;">🎁</el-tag>
-              </div>
-              <div class="product-card__badges">
+      <div class="desktop-only-wrapper">
+        <div class="table-scroll-wrapper">
+          <el-table :data="products" style="width: 100%" v-loading="loading">
+            <el-table-column prop="name" label="商品名称" show-overflow-tooltip />
+            <el-table-column prop="points_required" label="所需能量" width="100" />
+            <el-table-column prop="stock" label="库存" width="80" />
+            <el-table-column label="盲盒" width="70">
+              <template #default="{ row }">
+                <el-tag v-if="row.is_blind_box" type="warning" size="small">🎁</el-tag>
+                <span v-else style="color: #ccc;">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="status_name" label="状态" width="100">
+              <template #default="{ row }">
                 <el-tag :type="row.status === 'on_shelf' ? 'success' : 'info'" size="small">
                   {{ row.status_name }}
                 </el-tag>
-              </div>
-              <div class="product-card__price">{{ row.points_required }} ⚡</div>
-            </div>
-          </div>
-
-          <!-- 中部：库存 + 排序 -->
-          <div class="product-card__meta">
-            <div class="product-card__meta-item">
-              <span class="meta-label">库存</span>
-              <span class="meta-value" :class="{ 'meta-value--low': row.stock === 0 }">
-                {{ row.stock === 0 ? '已售罄' : row.stock }}
-              </span>
-            </div>
-            <div class="product-card__meta-item">
-              <span class="meta-label">排序</span>
-              <span class="meta-value">{{ row.sort_order }}</span>
-            </div>
-            <div class="product-card__meta-item">
-              <span class="meta-label">创建时间</span>
-              <span class="meta-value meta-value--time">{{ row.created_at }}</span>
-            </div>
-          </div>
-
-          <!-- 底部操作按钮 -->
-          <div class="product-card__actions">
-            <el-button size="small" type="primary" plain @click="handleEdit(row)">编辑</el-button>
-            <el-button
-              size="small"
-              type="warning"
-              plain
-              @click="handleToggleStatus(row)"
-            >{{ row.status === 'on_shelf' ? '下架' : '上架' }}</el-button>
-            <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
-          </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="sort_order" label="排序" width="80" />
+            <el-table-column prop="created_at" label="创建时间" width="180" />
+            <el-table-column label="操作" width="220" fixed="right">
+              <template #default="{ row }">
+                <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+                <el-button link type="warning" @click="handleToggleStatus(row)">
+                  {{ row.status === 'on_shelf' ? '下架' : '上架' }}
+                </el-button>
+                <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
-        <el-empty v-if="!loading && products.length === 0" description="暂无商品数据" />
+      </div>
+
+      <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
+      <div class="mobile-only-wrapper">
+        <div class="mobile-card-list" v-loading="loading">
+          <div
+            v-for="row in products"
+            :key="row.id"
+            class="product-card"
+            :class="{ 'product-card--off': row.status !== 'on_shelf' }"
+          >
+            <!-- 顶部：图片 + 名称 + 状态标签 -->
+            <div class="product-card__top">
+              <div class="product-card__img-wrap">
+                <img
+                  v-if="row.image_url"
+                  :src="row.image_url"
+                  class="product-card__img"
+                  alt=""
+                />
+                <div v-else class="product-card__img-placeholder">🛒</div>
+              </div>
+              <div class="product-card__info">
+                <div class="product-card__name">
+                  {{ row.name }}
+                  <el-tag v-if="row.is_blind_box" type="warning" size="small" style="margin-left:4px;">🎁</el-tag>
+                </div>
+                <div class="product-card__badges">
+                  <el-tag :type="row.status === 'on_shelf' ? 'success' : 'info'" size="small">
+                    {{ row.status_name }}
+                  </el-tag>
+                </div>
+                <div class="product-card__price">{{ row.points_required }} ⚡</div>
+              </div>
+            </div>
+
+            <!-- 中部：库存 + 排序 -->
+            <div class="product-card__meta">
+              <div class="product-card__meta-item">
+                <span class="meta-label">库存</span>
+                <span class="meta-value" :class="{ 'meta-value--low': row.stock === 0 }">
+                  {{ row.stock === 0 ? '已售罄' : row.stock }}
+                </span>
+              </div>
+              <div class="product-card__meta-item">
+                <span class="meta-label">排序</span>
+                <span class="meta-value">{{ row.sort_order }}</span>
+              </div>
+              <div class="product-card__meta-item">
+                <span class="meta-label">创建时间</span>
+                <span class="meta-value meta-value--time">{{ row.created_at }}</span>
+              </div>
+            </div>
+
+            <!-- 底部操作按钮 -->
+            <div class="product-card__actions">
+              <el-button size="small" type="primary" plain @click="handleEdit(row)">编辑</el-button>
+              <el-button
+                size="small"
+                type="warning"
+                plain
+                @click="handleToggleStatus(row)"
+              >{{ row.status === 'on_shelf' ? '下架' : '上架' }}</el-button>
+              <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+            </div>
+          </div>
+          <el-empty v-if="!loading && products.length === 0" description="暂无商品数据" />
+        </div>
       </div>
 
       <el-pagination
@@ -348,20 +352,18 @@ onUnmounted(() => {
 
 .search-form { margin-bottom: 20px; }
 
+.table-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .pagination {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
 }
 
-/* ===== PC / 移动互斥 ===== */
-.pc-only     { display: block; }
-.mobile-only { display: none; }
-
 @media (max-width: 768px) {
-  .pc-only     { display: none; }
-  .mobile-only { display: block; }
-
   .search-form { margin-bottom: 12px; }
 
   .pagination {
@@ -386,25 +388,6 @@ onUnmounted(() => {
   .upload-image {
     width: 120px;
     height: 120px;
-  }
-}
-
-/* --- 响应式双轨渲染强制隔离 --- */
-/* 默认（PC端）：显示表格，隐藏卡片 */
-.pc-table-view {
-  display: block;
-}
-.mobile-card-view {
-  display: none;
-}
-
-/* 移动端（屏幕宽度小于 768px）：隐藏表格，显示卡片 */
-@media screen and (max-width: 767px) {
-  .pc-table-view {
-    display: none !important;
-  }
-  .mobile-card-view {
-    display: block !important;
   }
 }
 
@@ -571,5 +554,19 @@ onUnmounted(() => {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+/* --- 响应式双轨渲染物理隔离 (终极版) --- */
+.mobile-only-wrapper {
+  display: none !important;
+}
+
+@media screen and (max-width: 768px) {
+  .desktop-only-wrapper {
+    display: none !important;
+  }
+  .mobile-only-wrapper {
+    display: block !important;
+  }
 }
 </style>

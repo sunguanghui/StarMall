@@ -21,92 +21,96 @@
       </el-form>
 
       <!-- ===== PC 端表格（> 768px） ===== -->
-      <div class="table-scroll-wrapper pc-table-view">
-        <el-table :data="records" style="width: 100%" v-loading="loading">
-          <el-table-column prop="user_name" label="用户" width="120" />
-          <el-table-column prop="product_name" label="商品名称" show-overflow-tooltip />
-          <el-table-column prop="quantity" label="数量" width="80" />
-          <el-table-column prop="points_spent" label="消耗积分" width="100" />
-          <el-table-column prop="status_name" label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="getStatusType(row.status)" size="small">
-                {{ row.status_name }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="created_at" label="兑换时间" width="180" />
-          <el-table-column prop="remark" label="备注" show-overflow-tooltip />
-          <el-table-column label="操作" width="100" fixed="right">
-            <template #default="{ row }">
-              <el-button
-                link
-                type="danger"
-                @click="handleCancel(row)"
-                :disabled="row.status !== 'completed'"
-              >取消兑换</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+      <div class="desktop-only-wrapper">
+        <div class="table-scroll-wrapper">
+          <el-table :data="records" style="width: 100%" v-loading="loading">
+            <el-table-column prop="user_name" label="用户" width="120" />
+            <el-table-column prop="product_name" label="商品名称" show-overflow-tooltip />
+            <el-table-column prop="quantity" label="数量" width="80" />
+            <el-table-column prop="points_spent" label="消耗积分" width="100" />
+            <el-table-column prop="status_name" label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="getStatusType(row.status)" size="small">
+                  {{ row.status_name }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="created_at" label="兑换时间" width="180" />
+            <el-table-column prop="remark" label="备注" show-overflow-tooltip />
+            <el-table-column label="操作" width="100" fixed="right">
+              <template #default="{ row }">
+                <el-button
+                  link
+                  type="danger"
+                  @click="handleCancel(row)"
+                  :disabled="row.status !== 'completed'"
+                >取消兑换</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </div>
 
       <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
-      <div class="mobile-card-list mobile-card-view" v-loading="loading">
-        <div
-          v-for="row in records"
-          :key="row.id"
-          class="exchange-card"
-          :class="{
-            'exchange-card--pending':   row.status === 'pending',
-            'exchange-card--completed': row.status === 'completed',
-            'exchange-card--cancelled': row.status === 'cancelled'
-          }"
-        >
-          <!-- 顶部：商品名 + 状态标签 -->
-          <div class="exchange-card__top">
-            <div class="exchange-card__product">
-              <span class="exchange-card__icon">🛒</span>
-              <span class="exchange-card__name">{{ row.product_name }}</span>
+      <div class="mobile-only-wrapper">
+        <div class="mobile-card-list" v-loading="loading">
+          <div
+            v-for="row in records"
+            :key="row.id"
+            class="exchange-card"
+            :class="{
+              'exchange-card--pending':   row.status === 'pending',
+              'exchange-card--completed': row.status === 'completed',
+              'exchange-card--cancelled': row.status === 'cancelled'
+            }"
+          >
+            <!-- 顶部：商品名 + 状态标签 -->
+            <div class="exchange-card__top">
+              <div class="exchange-card__product">
+                <span class="exchange-card__icon">🛒</span>
+                <span class="exchange-card__name">{{ row.product_name }}</span>
+              </div>
+              <el-tag :type="getStatusType(row.status)" size="small" class="exchange-card__status">
+                {{ row.status_name }}
+              </el-tag>
             </div>
-            <el-tag :type="getStatusType(row.status)" size="small" class="exchange-card__status">
-              {{ row.status_name }}
-            </el-tag>
-          </div>
 
-          <!-- 中部：用户、数量、消耗积分 -->
-          <div class="exchange-card__meta">
-            <div class="exchange-card__meta-item">
-              <span class="meta-label">用户</span>
-              <span class="meta-value">🧑‍🚀 {{ row.user_name }}</span>
+            <!-- 中部：用户、数量、消耗积分 -->
+            <div class="exchange-card__meta">
+              <div class="exchange-card__meta-item">
+                <span class="meta-label">用户</span>
+                <span class="meta-value">🧑‍🚀 {{ row.user_name }}</span>
+              </div>
+              <div class="exchange-card__meta-item">
+                <span class="meta-label">数量</span>
+                <span class="meta-value">× {{ row.quantity }}</span>
+              </div>
+              <div class="exchange-card__meta-item">
+                <span class="meta-label">消耗积分</span>
+                <span class="meta-value meta-value--energy">{{ row.points_spent }} ⚡</span>
+              </div>
             </div>
-            <div class="exchange-card__meta-item">
-              <span class="meta-label">数量</span>
-              <span class="meta-value">× {{ row.quantity }}</span>
-            </div>
-            <div class="exchange-card__meta-item">
-              <span class="meta-label">消耗积分</span>
-              <span class="meta-value meta-value--energy">{{ row.points_spent }} ⚡</span>
-            </div>
-          </div>
 
-          <!-- 备注 -->
-          <div v-if="row.remark" class="exchange-card__remark">
-            💬 {{ row.remark }}
-          </div>
+            <!-- 备注 -->
+            <div v-if="row.remark" class="exchange-card__remark">
+              💬 {{ row.remark }}
+            </div>
 
-          <!-- 底部：时间 + 操作 -->
-          <div class="exchange-card__footer">
-            <span class="exchange-card__time">🕐 {{ row.created_at }}</span>
-            <el-button
-              v-if="row.status === 'completed'"
-              size="small"
-              type="danger"
-              plain
-              @click="handleCancel(row)"
-            >取消兑换</el-button>
-            <span v-else class="text-muted">—</span>
+            <!-- 底部：时间 + 操作 -->
+            <div class="exchange-card__footer">
+              <span class="exchange-card__time">🕐 {{ row.created_at }}</span>
+              <el-button
+                v-if="row.status === 'completed'"
+                size="small"
+                type="danger"
+                plain
+                @click="handleCancel(row)"
+              >取消兑换</el-button>
+              <span v-else class="text-muted">—</span>
+            </div>
           </div>
+          <el-empty v-if="!loading && records.length === 0" description="暂无兑换记录" />
         </div>
-        <el-empty v-if="!loading && records.length === 0" description="暂无兑换记录" />
       </div>
 
       <el-pagination
@@ -198,10 +202,6 @@ onUnmounted(() => {
 
 .table-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-/* ===== PC / 移动互斥 ===== */
-.pc-only     { display: block; }
-.mobile-only { display: none; }
-
 .pagination {
   margin-top: 20px;
   display: flex;
@@ -209,24 +209,12 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
-  .pc-only     { display: none; }
-  .mobile-only { display: block; }
-
   .search-form { margin-bottom: 12px; }
 
   .pagination {
     justify-content: center;
     flex-wrap: wrap;
   }
-}
-
-/* --- 响应式双轨渲染强制隔离 --- */
-.pc-table-view  { display: block; }
-.mobile-card-view { display: none; }
-
-@media screen and (max-width: 767px) {
-  .pc-table-view  { display: none !important; }
-  .mobile-card-view { display: block !important; }
 }
 
 /* ===== 移动端兑换卡片 ===== */
@@ -336,4 +324,18 @@ onUnmounted(() => {
 }
 
 .exchange-card__time { font-size: 12px; color: #bbb; }
+
+/* --- 响应式双轨渲染物理隔离 (终极版) --- */
+.mobile-only-wrapper {
+  display: none !important;
+}
+
+@media screen and (max-width: 768px) {
+  .desktop-only-wrapper {
+    display: none !important;
+  }
+  .mobile-only-wrapper {
+    display: block !important;
+  }
+}
 </style>

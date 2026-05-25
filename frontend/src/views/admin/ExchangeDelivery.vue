@@ -19,109 +19,113 @@
       </template>
 
       <!-- ===== PC 端表格（> 768px） ===== -->
-      <div class="table-scroll-wrapper pc-table-view">
-        <el-table :data="records" v-loading="loading" style="width:100%">
-          <el-table-column prop="user_name" label="宇航员" width="100" />
-          <el-table-column prop="product_name" label="补给物资" min-width="150" show-overflow-tooltip />
-          <el-table-column prop="quantity" label="数量" width="70" />
-          <el-table-column prop="points_spent" label="消耗能量" width="100">
-            <template #default="{ row }">{{ row.points_spent }} ⚡</template>
-          </el-table-column>
-          <el-table-column prop="status_name" label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="statusTagType(row.status)" size="small">{{ row.status_name }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="remark" label="备注" show-overflow-tooltip />
-          <el-table-column prop="created_at" label="申请时间" width="160" />
-          <el-table-column label="操作" width="160" fixed="right">
-            <template #default="{ row }">
-              <el-button
-                v-if="row.status === 'pending'"
-                link type="success"
-                @click="handleDeliver(row)"
-                :loading="operating === row.id"
-              >🚀 确认交付</el-button>
-              <el-button
-                v-if="row.status === 'completed'"
-                link type="danger"
-                @click="handleCancel(row)"
-                :loading="operating === row.id"
-              >撤销交付</el-button>
-              <span v-if="row.status === 'cancelled'" class="text-muted">已取消</span>
-            </template>
-          </el-table-column>
-        </el-table>
+      <div class="desktop-only-wrapper">
+        <div class="table-scroll-wrapper">
+          <el-table :data="records" v-loading="loading" style="width:100%">
+            <el-table-column prop="user_name" label="宇航员" width="100" />
+            <el-table-column prop="product_name" label="补给物资" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="quantity" label="数量" width="70" />
+            <el-table-column prop="points_spent" label="消耗能量" width="100">
+              <template #default="{ row }">{{ row.points_spent }} ⚡</template>
+            </el-table-column>
+            <el-table-column prop="status_name" label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="statusTagType(row.status)" size="small">{{ row.status_name }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="remark" label="备注" show-overflow-tooltip />
+            <el-table-column prop="created_at" label="申请时间" width="160" />
+            <el-table-column label="操作" width="160" fixed="right">
+              <template #default="{ row }">
+                <el-button
+                  v-if="row.status === 'pending'"
+                  link type="success"
+                  @click="handleDeliver(row)"
+                  :loading="operating === row.id"
+                >🚀 确认交付</el-button>
+                <el-button
+                  v-if="row.status === 'completed'"
+                  link type="danger"
+                  @click="handleCancel(row)"
+                  :loading="operating === row.id"
+                >撤销交付</el-button>
+                <span v-if="row.status === 'cancelled'" class="text-muted">已取消</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </div>
 
       <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
-      <div class="mobile-card-view mobile-card-list" v-loading="loading">
-        <div
-          v-for="row in records"
-          :key="row.id"
-          class="delivery-card"
-          :class="{
-            'delivery-card--pending':   row.status === 'pending',
-            'delivery-card--completed': row.status === 'completed',
-            'delivery-card--cancelled': row.status === 'cancelled'
-          }"
-        >
-          <!-- 顶部：物资名 + 状态标签 -->
-          <div class="delivery-card__top">
-            <div class="delivery-card__product">
-              <span class="delivery-card__icon">📦</span>
-              <span class="delivery-card__name">{{ row.product_name }}</span>
+      <div class="mobile-only-wrapper">
+        <div class="mobile-card-list" v-loading="loading">
+          <div
+            v-for="row in records"
+            :key="row.id"
+            class="delivery-card"
+            :class="{
+              'delivery-card--pending':   row.status === 'pending',
+              'delivery-card--completed': row.status === 'completed',
+              'delivery-card--cancelled': row.status === 'cancelled'
+            }"
+          >
+            <!-- 顶部：物资名 + 状态标签 -->
+            <div class="delivery-card__top">
+              <div class="delivery-card__product">
+                <span class="delivery-card__icon">📦</span>
+                <span class="delivery-card__name">{{ row.product_name }}</span>
+              </div>
+              <el-tag :type="statusTagType(row.status)" size="small" class="delivery-card__status">
+                {{ row.status_name }}
+              </el-tag>
             </div>
-            <el-tag :type="statusTagType(row.status)" size="small" class="delivery-card__status">
-              {{ row.status_name }}
-            </el-tag>
-          </div>
 
-          <!-- 中部：宇航员、数量、消耗能量 -->
-          <div class="delivery-card__meta">
-            <div class="delivery-card__meta-item">
-              <span class="meta-label">宇航员</span>
-              <span class="meta-value">🧑‍🚀 {{ row.user_name }}</span>
+            <!-- 中部：宇航员、数量、消耗能量 -->
+            <div class="delivery-card__meta">
+              <div class="delivery-card__meta-item">
+                <span class="meta-label">宇航员</span>
+                <span class="meta-value">🧑‍🚀 {{ row.user_name }}</span>
+              </div>
+              <div class="delivery-card__meta-item">
+                <span class="meta-label">数量</span>
+                <span class="meta-value">× {{ row.quantity }}</span>
+              </div>
+              <div class="delivery-card__meta-item">
+                <span class="meta-label">消耗能量</span>
+                <span class="meta-value energy">{{ row.points_spent }} ⚡</span>
+              </div>
             </div>
-            <div class="delivery-card__meta-item">
-              <span class="meta-label">数量</span>
-              <span class="meta-value">× {{ row.quantity }}</span>
-            </div>
-            <div class="delivery-card__meta-item">
-              <span class="meta-label">消耗能量</span>
-              <span class="meta-value energy">{{ row.points_spent }} ⚡</span>
-            </div>
-          </div>
 
-          <!-- 备注 -->
-          <div v-if="row.remark" class="delivery-card__remark">
-            💬 {{ row.remark }}
-          </div>
+            <!-- 备注 -->
+            <div v-if="row.remark" class="delivery-card__remark">
+              💬 {{ row.remark }}
+            </div>
 
-          <!-- 申请时间 + 操作按钮 -->
-          <div class="delivery-card__footer">
-            <span class="delivery-card__time">🕐 {{ row.created_at }}</span>
-            <div class="delivery-card__actions">
-              <el-button
-                v-if="row.status === 'pending'"
-                type="success"
-                size="small"
-                :loading="operating === row.id"
-                @click="handleDeliver(row)"
-              >🚀 确认交付</el-button>
-              <el-button
-                v-if="row.status === 'completed'"
-                type="danger"
-                size="small"
-                plain
-                :loading="operating === row.id"
-                @click="handleCancel(row)"
-              >撤销交付</el-button>
-              <span v-if="row.status === 'cancelled'" class="text-muted">已取消</span>
+            <!-- 申请时间 + 操作按钮 -->
+            <div class="delivery-card__footer">
+              <span class="delivery-card__time">🕐 {{ row.created_at }}</span>
+              <div class="delivery-card__actions">
+                <el-button
+                  v-if="row.status === 'pending'"
+                  type="success"
+                  size="small"
+                  :loading="operating === row.id"
+                  @click="handleDeliver(row)"
+                >🚀 确认交付</el-button>
+                <el-button
+                  v-if="row.status === 'completed'"
+                  type="danger"
+                  size="small"
+                  plain
+                  :loading="operating === row.id"
+                  @click="handleCancel(row)"
+                >撤销交付</el-button>
+                <span v-if="row.status === 'cancelled'" class="text-muted">已取消</span>
+              </div>
             </div>
           </div>
+          <el-empty v-if="!loading && records.length === 0" description="暂无发货记录" />
         </div>
-        <el-empty v-if="!loading && records.length === 0" description="暂无发货记录" />
       </div>
 
       <el-pagination
@@ -213,10 +217,6 @@ onUnmounted(() => {
 .text-muted { color: #ccc; font-size: 13px; }
 .table-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-/* ===== PC / 移动互斥 ===== */
-.pc-only     { display: block; }
-.mobile-only { display: none; }
-
 .pagination {
   margin-top: 20px;
   display: flex;
@@ -224,31 +224,9 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
-  .pc-only     { display: none; }
-  .mobile-only { display: block; }
-
   .pagination {
     justify-content: center;
     flex-wrap: wrap;
-  }
-}
-
-/* --- 响应式双轨渲染强制隔离 --- */
-/* 默认（PC端）：显示表格，隐藏卡片 */
-.pc-table-view {
-  display: block;
-}
-.mobile-card-view {
-  display: none;
-}
-
-/* 移动端（屏幕宽度小于 768px）：隐藏表格，显示卡片 */
-@media screen and (max-width: 767px) {
-  .pc-table-view {
-    display: none !important;
-  }
-  .mobile-card-view {
-    display: block !important;
   }
 }
 
@@ -375,5 +353,19 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* --- 响应式双轨渲染物理隔离 (终极版) --- */
+.mobile-only-wrapper {
+  display: none !important;
+}
+
+@media screen and (max-width: 768px) {
+  .desktop-only-wrapper {
+    display: none !important;
+  }
+  .mobile-only-wrapper {
+    display: block !important;
+  }
 }
 </style>

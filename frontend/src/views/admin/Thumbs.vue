@@ -122,71 +122,75 @@
       </template>
 
       <!-- ===== PC 端表格（> 768px） ===== -->
-      <div class="pc-table-view">
-        <el-table :data="records" style="width: 100%" v-loading="loading">
-          <el-table-column prop="user_name" label="用户" width="120" />
-          <el-table-column prop="thumb_type_name" label="类型" width="150" />
-          <el-table-column label="能量" width="80">
-            <template #default="{ row }">
-              <span :class="{ 'negative-points': row.points < 0 }">{{ row.points }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="reason" label="原因" show-overflow-tooltip />
-          <el-table-column prop="parent_message" label="舰长寄语" show-overflow-tooltip />
-          <el-table-column prop="given_by_name" label="赋能官 ✨" width="120" />
-          <el-table-column prop="created_at" label="发放时间" width="180" />
-          <el-table-column label="操作" width="100" fixed="right">
-            <template #default="{ row }">
-              <el-button
-                v-if="isUndoable(row)"
-                link
-                type="danger"
-                size="small"
-                :loading="undoing === row.id"
-                @click="handleUndo(row)"
-              >后悔药</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+      <div class="desktop-only-wrapper">
+        <div class="table-scroll-wrapper">
+          <el-table :data="records" style="width: 100%" v-loading="loading">
+            <el-table-column prop="user_name" label="用户" width="120" />
+            <el-table-column prop="thumb_type_name" label="类型" width="150" />
+            <el-table-column label="能量" width="80">
+              <template #default="{ row }">
+                <span :class="{ 'negative-points': row.points < 0 }">{{ row.points }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="reason" label="原因" show-overflow-tooltip />
+            <el-table-column prop="parent_message" label="舰长寄语" show-overflow-tooltip />
+            <el-table-column prop="given_by_name" label="赋能官 ✨" width="120" />
+            <el-table-column prop="created_at" label="发放时间" width="180" />
+            <el-table-column label="操作" width="100" fixed="right">
+              <template #default="{ row }">
+                <el-button
+                  v-if="isUndoable(row)"
+                  link
+                  type="danger"
+                  size="small"
+                  :loading="undoing === row.id"
+                  @click="handleUndo(row)"
+                >后悔药</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </div>
 
       <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
-      <div class="mobile-card-view mobile-card-list" v-loading="loading">
-        <div
-          v-for="row in records"
-          :key="row.id"
-          class="record-card"
-          :class="{ 'record-card-punish': row.points < 0 }"
-        >
-          <div class="record-card-top">
-            <div class="record-card-left">
-              <span class="record-user">{{ row.user_name }}</span>
-              <span class="record-type">{{ row.thumb_type_name }}</span>
+      <div class="mobile-only-wrapper">
+        <div class="mobile-card-list" v-loading="loading">
+          <div
+            v-for="row in records"
+            :key="row.id"
+            class="record-card"
+            :class="{ 'record-card-punish': row.points < 0 }"
+          >
+            <div class="record-card-top">
+              <div class="record-card-left">
+                <span class="record-user">{{ row.user_name }}</span>
+                <span class="record-type">{{ row.thumb_type_name }}</span>
+              </div>
+              <span :class="['record-points', row.points < 0 ? 'negative-points' : 'positive-points']">
+                {{ row.points > 0 ? '+' : '' }}{{ row.points }}
+              </span>
             </div>
-            <span :class="['record-points', row.points < 0 ? 'negative-points' : 'positive-points']">
-              {{ row.points > 0 ? '+' : '' }}{{ row.points }}
-            </span>
-          </div>
 
-          <div v-if="row.reason" class="record-reason">{{ row.reason }}</div>
-          <div v-if="row.parent_message" class="record-message">💬 舰长寄语：{{ row.parent_message }}</div>
+            <div v-if="row.reason" class="record-reason">{{ row.reason }}</div>
+            <div v-if="row.parent_message" class="record-message">💬 舰长寄语：{{ row.parent_message }}</div>
 
-          <div class="record-card-bottom">
-            <div class="record-meta">
-              <span>✨ {{ row.given_by_name }}</span>
-              <span>{{ row.created_at }}</span>
+            <div class="record-card-bottom">
+              <div class="record-meta">
+                <span>✨ {{ row.given_by_name }}</span>
+                <span>{{ row.created_at }}</span>
+              </div>
+              <el-button
+                v-if="isUndoable(row)"
+                size="small"
+                type="danger"
+                plain
+                :loading="undoing === row.id"
+                @click="handleUndo(row)"
+              >后悔药</el-button>
             </div>
-            <el-button
-              v-if="isUndoable(row)"
-              size="small"
-              type="danger"
-              plain
-              :loading="undoing === row.id"
-              @click="handleUndo(row)"
-            >后悔药</el-button>
           </div>
+          <el-empty v-if="!loading && records.length === 0" description="暂无发放记录" />
         </div>
-        <el-empty v-if="!loading && records.length === 0" description="暂无发放记录" />
       </div>
 
       <el-pagination
@@ -401,6 +405,11 @@ onUnmounted(() => {
   justify-content: flex-end;
 }
 
+.table-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .punish-presets {
   display: flex;
   gap: 10px;
@@ -424,27 +433,11 @@ onUnmounted(() => {
   font-weight: 700;
 }
 
-/* ===== PC / 移动 互斥显示 ===== */
-.pc-only     { display: block; }
-.mobile-only { display: none; }
-
 @media (max-width: 768px) {
-  .pc-only     { display: none; }
-  .mobile-only { display: block; }
-
   .pagination {
     justify-content: center;
     flex-wrap: wrap;
   }
-}
-
-/* --- 响应式双轨渲染强制隔离 --- */
-.pc-table-view  { display: block; }
-.mobile-card-view { display: none; }
-
-@media screen and (max-width: 767px) {
-  .pc-table-view  { display: none !important; }
-  .mobile-card-view { display: block !important; }
 }
 
 /* ===== 移动端发放记录卡片 ===== */
@@ -533,5 +526,19 @@ onUnmounted(() => {
   gap: 2px;
   font-size: 11px;
   color: #bbb;
+}
+
+/* --- 响应式双轨渲染物理隔离 (终极版) --- */
+.mobile-only-wrapper {
+  display: none !important;
+}
+
+@media screen and (max-width: 768px) {
+  .desktop-only-wrapper {
+    display: none !important;
+  }
+  .mobile-only-wrapper {
+    display: block !important;
+  }
 }
 </style>
