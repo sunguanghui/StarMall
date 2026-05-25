@@ -45,10 +45,26 @@
         <el-table-column prop="total_points" label="总积分" width="90" />
         <el-table-column prop="available_points" label="可用积分" width="90" />
         <el-table-column prop="created_at" label="创建时间" width="160" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="账号状态" width="110">
+          <template #default="{ row }">
+            <el-tag
+              :type="(row.status || 'active') === 'active' ? 'success' : 'warning'"
+              size="small"
+            >
+              {{ (row.status || 'active') === 'active' ? '已激活' : '待审批' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
             <el-button link type="warning" @click="handleResetPassword(row)">重置密码</el-button>
+            <el-button
+              v-if="(row.status || 'active') === 'pending'"
+              link
+              type="success"
+              @click="handleApprove(row)"
+            >批准登舰</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -390,6 +406,16 @@ const handleResetPasswordSubmit = async () => {
 }
 
 onMounted(() => { loadUsers() })
+
+const handleApprove = async (row) => {
+  try {
+    await api.put(`/users/${row.id}/status`, { status: 'active' })
+    ElMessage.success(`${row.real_name} 已批准登舰！`)
+    await loadUsers()
+  } catch {
+    ElMessage.error('操作失败，请重试')
+  }
+}
 </script>
 
 <style scoped>

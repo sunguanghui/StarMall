@@ -31,6 +31,7 @@ class User(db.Model):
     is_child = db.Column(db.Boolean, nullable=False, default=False)
     # B-14: 存储图形密码的哈希值，不再明文存 JSON 序列
     child_pattern = db.Column(db.String(255), nullable=True, default=None)
+    status = db.Column(db.String(20), nullable=False, default='active')
     created_at = db.Column(db.DateTime, default=get_beijing_time)
     updated_at = db.Column(db.DateTime, default=get_beijing_time, onupdate=get_beijing_time)
 
@@ -71,6 +72,7 @@ class User(db.Model):
             'fragments': self.fragments or {'engine': 0, 'radar': 0, 'hull': 0},
             'ship_level': self.ship_level or 1,
             'streak_days': self.streak_days or 0,
+            'status': self.status or 'active',
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         }
 

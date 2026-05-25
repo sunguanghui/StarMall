@@ -273,6 +273,9 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({'code': 401, 'message': '用户名或密码错误'}), 401
 
+    if (user.status or 'active') == 'pending':
+        return jsonify({'code': 403, 'message': '登舰申请已提交，请呼叫舰长批准！'}), 403
+
     access_token = create_access_token(identity=str(user.id))
     return jsonify({
         'code': 200,
@@ -393,7 +396,7 @@ def register():
     if User.query.filter_by(username=username).first():
         return jsonify({'code': 400, 'message': '用户名已存在'}), 400
 
-    # 创建新用户
+    # 创建新用户，前台注册默认待审批
     user = User(
         username=username,
         real_name=real_name,
@@ -401,7 +404,8 @@ def register():
         phone=phone,
         role='user',
         total_points=0,
-        available_points=0
+        available_points=0,
+        status='pending'
     )
     user.set_password(password)
 
@@ -410,7 +414,7 @@ def register():
 
     return jsonify({
         'code': 200,
-        'message': '注册成功',
+        'message': '注册成功，请等待舰长审批后登录',
         'data': user.to_dict()
     })
 
@@ -586,7 +590,33 @@ def reset_user_password(user_id):
     })
 
 
-# ==================== 星辰币管理 API ====================
+@app.route('/api/users/<int:user_id>/status', methods=['PUT'])
+@jwt_required()
+def update_user_status(user_id):
+    """管理员审批用户状态（active / pending）"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+
+    if current_user.role != 'admin':
+        return jsonify({'code': 403, 'message': '无权限操作'}), 403
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'code': 404, 'message': '用户不存在'}), 404
+
+    data = request.get_json()
+    new_status = data.get('status')
+    if new_status not in ('active', 'pending'):
+        return jsonify({'code': 400, 'message': '无效的状态值'}), 400
+
+    user.status = new_status
+    db.session.commit()
+
+    return jsonify({
+        'code': 200,
+        'message': '状态更新成功',
+        'data': user.to_dict()
+    })
 
 @app.route('/api/thumbs', methods=['POST'])
 @jwt_required()

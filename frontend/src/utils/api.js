@@ -45,9 +45,15 @@ api.interceptors.response.use(
           localStorage.removeItem('userInfo')
           router.push('/login')
           break
-        case 403:
-          ElMessage.error('无权限访问')
+        case 403: {
+          const msg403 = error.response.data?.message || ''
+          if (msg403.includes('登舰申请')) {
+            ElMessage.warning(msg403)
+          } else {
+            ElMessage.error('无权限访问')
+          }
           break
+        }
         case 404:
           ElMessage.error('请求的资源不存在')
           break
