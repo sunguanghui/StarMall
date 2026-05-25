@@ -109,7 +109,6 @@
           <el-menu-item index="/admin/exchange-delivery" @click="drawerVisible = false"><el-icon><Box /></el-icon><span>补给调度室</span></el-menu-item>
           <el-menu-item index="/admin/wishlist-approval" @click="drawerVisible = false"><el-icon><Compass /></el-icon><span>蓝图解析室</span></el-menu-item>
           <el-menu-item index="/admin/tasks" @click="drawerVisible = false"><el-icon><Aim /></el-icon><span>任务定义管理</span></el-menu-item>
-          <el-menu-item index="/admin/broadcast-settings" @click="drawerVisible = false"><el-icon><Mic /></el-icon><span>星际广播台</span></el-menu-item>
           <template v-if="userStore.isSuperAdmin()">
             <el-menu-item index="/admin/users" @click="drawerVisible = false"><el-icon><UserFilled /></el-icon><span>乘员编制管理</span></el-menu-item>
             <el-menu-item index="/admin/products" @click="drawerVisible = false"><el-icon><Shop /></el-icon><span>补给物资库房</span></el-menu-item>

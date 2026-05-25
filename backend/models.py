@@ -1,8 +1,13 @@
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
+
+
+def get_beijing_time():
+    """返回当前北京时间（无 tzinfo，兼容 MySQL DATETIME 列）"""
+    return datetime.now(timezone(timedelta(hours=8))).replace(tzinfo=None)
 
 class User(db.Model):
     """用户模型"""
@@ -26,8 +31,8 @@ class User(db.Model):
     is_child = db.Column(db.Boolean, nullable=False, default=False)
     # B-14: 存储图形密码的哈希值，不再明文存 JSON 序列
     child_pattern = db.Column(db.String(255), nullable=True, default=None)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_beijing_time)
+    updated_at = db.Column(db.DateTime, default=get_beijing_time, onupdate=get_beijing_time)
 
     thumbs_records = db.relationship('ThumbsRecord', foreign_keys='ThumbsRecord.user_id', backref='user', lazy='dynamic')
     exchange_records = db.relationship('ExchangeRecord', backref='user', lazy='dynamic')
@@ -83,7 +88,7 @@ class ThumbsRecord(db.Model):
     given_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     admin_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_beijing_time)
 
     giver = db.relationship('User', foreign_keys=[given_by])
     admin = db.relationship('User', foreign_keys=[admin_id])
@@ -130,8 +135,8 @@ class Product(db.Model):
     status = db.Column(db.Enum('on_shelf', 'off_shelf'), default='off_shelf')
     sort_order = db.Column(db.Integer, default=0)
     is_blind_box = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_beijing_time)
+    updated_at = db.Column(db.DateTime, default=get_beijing_time, onupdate=get_beijing_time)
 
     exchange_records = db.relationship('ExchangeRecord', backref='product', lazy='dynamic')
 
@@ -164,8 +169,8 @@ class ExchangeRecord(db.Model):
     quantity = db.Column(db.Integer, default=1)
     status = db.Column(db.Enum('pending', 'completed', 'cancelled'), default='pending')
     remark = db.Column(db.String(255))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_beijing_time)
+    updated_at = db.Column(db.DateTime, default=get_beijing_time, onupdate=get_beijing_time)
 
     def to_dict(self):
         return {
@@ -193,8 +198,8 @@ class Wishlist(db.Model):
     title = db.Column(db.String(200), nullable=False)
     expected_points = db.Column(db.Integer, nullable=False, default=0)
     status = db.Column(db.Enum('pending', 'approved', 'rejected'), default='pending')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_beijing_time)
+    updated_at = db.Column(db.DateTime, default=get_beijing_time, onupdate=get_beijing_time)
 
     def to_dict(self):
         status_name_map = {'pending': '待审核', 'approved': '已批准', 'rejected': '已拒绝'}
@@ -222,8 +227,8 @@ class Task(db.Model):
     is_active     = db.Column(db.Boolean, nullable=False, default=True)
     reviewer_id   = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_by    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at    = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at    = db.Column(db.DateTime, default=get_beijing_time)
+    updated_at    = db.Column(db.DateTime, default=get_beijing_time, onupdate=get_beijing_time)
 
     logs     = db.relationship('TaskLog', backref='task', lazy='dynamic')
     reviewer = db.relationship('User', foreign_keys=[reviewer_id])
@@ -253,8 +258,8 @@ class TaskLog(db.Model):
     user_id    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     task_id    = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
     status     = db.Column(db.Enum('pending', 'approved', 'rejected'), nullable=False, default='pending')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_beijing_time)
+    updated_at = db.Column(db.DateTime, default=get_beijing_time, onupdate=get_beijing_time)
 
     user = db.relationship('User', backref=db.backref('task_logs', lazy='dynamic'))
 
@@ -290,7 +295,7 @@ class SystemSettings(db.Model):
     morning_broadcast_time = db.Column(db.String(5), default='07:00')
     evening_broadcast_time = db.Column(db.String(5), default='21:00')
     broadcast_targets = db.Column(db.JSON, default=list)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=get_beijing_time, onupdate=get_beijing_time)
 
     def to_dict(self):
         return {

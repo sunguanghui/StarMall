@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from werkzeug.utils import secure_filename
 import os
 import uuid
@@ -10,7 +10,7 @@ import subprocess
 import glob as glob_module
 from config import Config
 import random
-from models import db, User, ThumbsRecord, Product, ExchangeRecord, Wishlist, Task, TaskLog, SystemSettings
+from models import db, User, ThumbsRecord, Product, ExchangeRecord, Wishlist, Task, TaskLog, SystemSettings, get_beijing_time
 from speaker_client import speaker_client
 
 # 盲盒奖池（可自定义扩展）
@@ -142,6 +142,21 @@ def _try_instant_broadcast(target_user, admin_user, reason, amount):
             '[Broadcast] unexpected error during instant broadcast '
             'target=%s reason=%s amount=%s', target_user.real_name, reason, amount
         )
+
+
+def _broadcast_raw(text):
+    """直接播报预构建文案；失败时写日志，不向上抛异常"""
+    try:
+        settings = _get_settings()
+        if not settings or not settings.enable_broadcast:
+            return
+        if not settings.speaker_ip:
+            return
+        ok = speaker_client.send_text(text)
+        if not ok:
+            app.logger.warning('[Broadcast] send_text returned False — speaker not connected yet; text=%s', text[:60])
+    except Exception:
+        app.logger.exception('[Broadcast] unexpected error during raw broadcast text=%s', text[:60])
 
 
 # ==================== 文件上传 API ====================
@@ -635,14 +650,21 @@ def give_thumbs():
     db.session.add(record)
     db.session.commit()
 
-    # 即时播报（仅正向发分）
+    # 即时播报（commit 后解耦触发）
     if points > 0:
-        _try_instant_broadcast(
-            target_user=user,
-            admin_user=current_user,
-            reason=reason or '表现出色',
-            amount=points
+        text = (
+            f"{current_user.real_name} 为小宇航员 {user.real_name} 发放了 {points} 枚星辰币！"
+            f"原因是：{reason or '表现出色'}。"
+            f"当前可用星辰币余额为：{user.available_points} 枚。"
         )
+    else:
+        text = (
+            f"警告！{current_user.real_name} 对小宇航员 {user.real_name} 进行了红牌扣分，"
+            f"扣除 {abs(points)} 枚星辰币。"
+            f"原因是：{reason or '违规行为'}。"
+            f"当前可用星辰币余额为：{user.available_points} 枚。"
+        )
+    _broadcast_raw(text)
 
     type_label = {'single': '单星辰币', 'double': '双星辰币', 'deduction': '红牌警告'}
     return jsonify({
@@ -1287,8 +1309,8 @@ def get_tasks():
 
     tasks = query.order_by(Task.type.asc(), Task.id.asc()).all()
 
-    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    today_end = datetime.now().replace(hour=23, minute=59, second=59, microsecond=999999)
+    today_start = get_beijing_time().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = get_beijing_time().replace(hour=23, minute=59, second=59, microsecond=999999)
 
     result = []
     for task in tasks:
@@ -1425,8 +1447,8 @@ def submit_task_log():
 
     # daily 任务每天只能提交一次
     if task.type == 'daily':
-        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = datetime.now().replace(hour=23, minute=59, second=59, microsecond=999999)
+        today_start = get_beijing_time().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = get_beijing_time().replace(hour=23, minute=59, second=59, microsecond=999999)
         existing = TaskLog.query.filter(
             TaskLog.user_id == current_user_id,
             TaskLog.task_id == task_id,
@@ -1527,7 +1549,7 @@ def approve_task_log(log_id):
         user.available_points += task.energy_reward
 
         # 连击追踪
-        today = datetime.utcnow().date()
+        today = get_beijing_time().date()
         if user.last_active_date == today:
             pass  # 同一天多次完成任务，不重复计算连击
         elif user.last_active_date == today - timedelta(days=1):
@@ -1578,12 +1600,20 @@ def approve_task_log(log_id):
         return jsonify({'code': 500, 'message': '审批失败，请重试'}), 500
 
     # 事务提交后再播报（不影响数据一致性）
-    _try_instant_broadcast(
-        target_user=user,
-        admin_user=current_user,
-        reason=f'完成任务：{task.title}',
-        amount=task.energy_reward + streak_bonus
-    )
+    if streak_bonus:
+        text = (
+            f"{current_user.real_name} 批准了小宇航员 {user.real_name} 的任务：{task.title}。"
+            f"奖励 {task.energy_reward} 枚星辰币！"
+            f"同时触发连续打卡奖励，额外增加 {streak_bonus} 枚星辰币，太棒啦！"
+            f"当前可用星辰币余额为：{user.available_points} 枚。"
+        )
+    else:
+        text = (
+            f"{current_user.real_name} 批准了小宇航员 {user.real_name} 的任务：{task.title}。"
+            f"奖励 {task.energy_reward} 枚星辰币！"
+            f"当前可用星辰币余额为：{user.available_points} 枚。"
+        )
+    _broadcast_raw(text)
 
     msg = f'已批准，已发放 {task.energy_reward} 点能量'
     if streak_bonus:
@@ -1645,7 +1675,7 @@ def undo_thumbs(record_id):
             db.session.rollback()
             return jsonify({'code': 400, 'message': '该记录已撤销'}), 400
 
-        age = datetime.utcnow() - record.created_at
+        age = get_beijing_time() - record.created_at
         if age > timedelta(minutes=15):
             db.session.rollback()
             return jsonify({'code': 400, 'message': '超过15分钟，无法撤销'}), 400
@@ -1814,7 +1844,7 @@ def test_broadcast():
 def energy_decay_job():
     """每日检查：连续3天未活跃的用户扣除1点能量"""
     with app.app_context():
-        cutoff = datetime.utcnow().date() - timedelta(days=3)
+        cutoff = get_beijing_time().date() - timedelta(days=3)
         inactive_users = User.query.filter(
             User.role == 'user',
             db.or_(
@@ -1848,7 +1878,7 @@ def db_backup_job():
         password = cfg.get('MYSQL_PASSWORD', 'root')
         database = cfg.get('MYSQL_DATABASE', 'thumbs_mall')
 
-        filename = datetime.now().strftime('%Y-%m-%d') + '.sql'
+        filename = get_beijing_time().strftime('%Y-%m-%d') + '.sql'
         filepath = os.path.join(BACKUP_DIR, filename)
 
         env = os.environ.copy()
@@ -1874,7 +1904,7 @@ def do_morning_broadcast():
             return
         target_ids = settings.broadcast_targets or []
         if not target_ids:
-            target_ids = [u.id for u in User.query.filter_by(role='user').all()]
+            target_ids = [u.id for u in User.query.filter_by(is_child=True).all()]
         for uid in target_ids:
             user = User.query.get(uid)
             if not user:
@@ -1898,7 +1928,7 @@ def do_evening_broadcast():
             return
         target_ids = settings.broadcast_targets or []
         if not target_ids:
-            target_ids = [u.id for u in User.query.filter_by(role='user').all()]
+            target_ids = [u.id for u in User.query.filter_by(is_child=True).all()]
         for uid in target_ids:
             user = User.query.get(uid)
             if not user:
