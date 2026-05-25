@@ -131,7 +131,7 @@
       <!-- 切换通道按钮：悬浮于卡片之上，不参与翻转 -->
       <button class="flip-toggle-btn" @click="toggleFlip">
         <span v-if="!isFlipped">👉 切换至小宇航员快捷舱</span>
-        <span v-else>👈 返回星际密码终端</span>
+        <span v-else>👈 返回星港接驳站</span>
       </button>
 
       <div class="card-flipper" :class="{ flipped: isFlipped }">
@@ -139,8 +139,8 @@
         <!-- ===== 正面：标准登录 ===== -->
         <div class="card-face card-front login-box">
           <div class="login-header">
-            <h1>星际密码终端</h1>
-            <p>欢迎登录，飞行员</p>
+            <h1>星港接驳站</h1>
+            <p>欢迎登舰，星际探索者</p>
           </div>
 
           <el-form ref="formRef" :model="form" :rules="rules" class="login-form">
@@ -186,7 +186,7 @@
           </div>
 
           <div class="register-link">
-            还没有飞行员证？<router-link to="/register">立即注册 ✨</router-link>
+            还没有登舰通行证？<router-link to="/register">立即注册 ✨</router-link>
           </div>
         </div>
 
