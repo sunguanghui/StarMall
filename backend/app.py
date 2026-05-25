@@ -1869,6 +1869,29 @@ def test_broadcast():
 
     return jsonify({'code': 503, 'message': '音箱未连接，请检查 IP 和网络'}), 503
 
+# 专门提供给外部系统的极简能量查询通道
+@app.route('/api/external/v1/astronaut/<int:user_id>/energy', methods=['GET'])
+def get_external_astronaut_energy(user_id):
+    # 1. 简单的固定的令牌校验（可以写在 .env 中）
+    external_api_key = request.headers.get('X-API-Key')
+    expected_key = os.getenv('EXTERNAL_API_KEY', 'your_super_secret_fleet_key')
+    
+    if not external_api_key or external_api_key != expected_key:
+        return jsonify({"code": 401, "msg": "未授权的星际访问凭证！"}), 401
+
+    # 2. 查询目标用户
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"code": 404, "msg": "未找到该编号的宇航员"}), 404
+        
+    # 3. 仅向外暴露最核心的、非敏感的能量和状态数据
+    return jsonify({
+        "user_id": user.id,
+        "real_name": user.real_name,
+        "available_energy": user.available_points, # 可用星辰币
+        "total_energy": user.total_points,         # 累计历史总能量
+        "status": user.status                      # 账号状态
+    }), 200
 
 # ==================== 定时任务 ====================
 
