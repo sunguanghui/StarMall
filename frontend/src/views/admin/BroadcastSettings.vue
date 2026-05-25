@@ -6,9 +6,9 @@
     </div>
 
     <el-row :gutter="24">
-      <!-- 左列：连接设置 + 即时播报 -->
+      <!-- 左列：连接配置 + 全局播报策略 -->
       <el-col :xs="24" :md="12">
-        <!-- 音箱连接 -->
+        <!-- 区块一：音箱连接配置 -->
         <el-card class="setting-card" shadow="never">
           <template #header>
             <div class="card-header">
@@ -62,12 +62,12 @@
           </el-button>
         </el-card>
 
-        <!-- 即时播报开关 -->
+        <!-- 区块二：全局播报策略 -->
         <el-card class="setting-card" shadow="never" style="margin-top: 20px">
           <template #header>
             <div class="card-header">
               <el-icon><Bell /></el-icon>
-              <span>即时发分播报</span>
+              <span>全局播报策略</span>
             </div>
           </template>
 
@@ -78,10 +78,30 @@
             </div>
             <el-switch v-model="form.enable_broadcast" active-color="#7B68EE" />
           </div>
+
+          <el-form :model="form" label-position="top" class="setting-form" style="margin-top: 20px">
+            <el-form-item label="播报目标宇航员">
+              <el-select
+                v-model="form.broadcast_targets"
+                multiple
+                clearable
+                placeholder="留空则播报全部宇航员"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="user in userList"
+                  :key="user.id"
+                  :label="user.real_name"
+                  :value="user.id"
+                />
+              </el-select>
+              <div class="form-tip">未选择时默认向所有小宇航员播报，同时影响即时播报与定时简报</div>
+            </el-form-item>
+          </el-form>
         </el-card>
       </el-col>
 
-      <!-- 右列：定时简报 -->
+      <!-- 右列：区块三：定时星际简报 -->
       <el-col :xs="24" :md="12">
         <el-card class="setting-card" shadow="never">
           <template #header>
@@ -122,25 +142,6 @@
                 :disabled="!form.enable_timed_broadcast"
                 style="width: 100%"
               />
-            </el-form-item>
-
-            <el-form-item label="播报目标宇航员">
-              <el-select
-                v-model="form.broadcast_targets"
-                multiple
-                clearable
-                placeholder="留空则播报全部宇航员"
-                :disabled="!form.enable_timed_broadcast"
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="user in userList"
-                  :key="user.id"
-                  :label="user.real_name"
-                  :value="user.id"
-                />
-              </el-select>
-              <div class="form-tip">未选择时默认向所有宇航员播报</div>
             </el-form-item>
           </el-form>
 
@@ -233,7 +234,7 @@ const fetchUsers = async () => {
   try {
     const res = await api.get('/users', { params: { role: 'user', per_page: 200 } })
     if (res.code === 200) {
-      userList.value = res.data.list || []
+      userList.value = (res.data.list || []).filter(u => u.is_child)
     }
   } catch {
     // 静默处理
