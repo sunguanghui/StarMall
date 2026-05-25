@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS users (
     streak_days      INT DEFAULT 0 COMMENT '连续打卡天数',
     last_active_date DATE DEFAULT NULL COMMENT '最后活跃日期',
     is_child         TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否儿童账号',
-    child_pattern    JSON DEFAULT NULL COMMENT '儿童图案解锁密码',
+    child_pattern    VARCHAR(255) DEFAULT NULL COMMENT '儿童图案解锁密码（哈希）',
+    status           VARCHAR(20) NOT NULL DEFAULT 'active' COMMENT '账号状态：active/pending',
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_username (username)
