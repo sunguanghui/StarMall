@@ -24,7 +24,8 @@ class User(db.Model):
     streak_days = db.Column(db.Integer, default=0)
     last_active_date = db.Column(db.Date, nullable=True)
     is_child = db.Column(db.Boolean, nullable=False, default=False)
-    child_pattern = db.Column(db.JSON, nullable=True, default=None)
+    # B-14: 存储图形密码的哈希值，不再明文存 JSON 序列
+    child_pattern = db.Column(db.String(255), nullable=True, default=None)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -37,6 +38,18 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password, password)
+
+    def set_pattern(self, pattern):
+        """接收 list[int]，序列化后哈希存储"""
+        serialized = ','.join(str(n) for n in pattern)
+        self.child_pattern = generate_password_hash(serialized)
+
+    def check_pattern(self, pattern):
+        """接收 list[int]，序列化后与哈希比对"""
+        if not self.child_pattern:
+            return False
+        serialized = ','.join(str(n) for n in pattern)
+        return check_password_hash(self.child_pattern, serialized)
 
     def to_dict(self):
         return {

@@ -113,12 +113,14 @@ def _get_settings():
 
 
 def _try_instant_broadcast(target_user, admin_user, reason, amount):
-    """即时播报入口，失败静默"""
+    """即时播报入口；失败时写日志，不向上抛异常"""
     try:
         settings = _get_settings()
         if not settings or not settings.enable_broadcast:
+            app.logger.debug('[Broadcast] skipped: broadcast disabled or no settings')
             return
         if not settings.speaker_ip:
+            app.logger.debug('[Broadcast] skipped: speaker_ip not configured')
             return
         admin_role = '舰长' if admin_user.is_super_admin else '领航员'
         text = _build_instant_broadcast_text(
@@ -129,9 +131,17 @@ def _try_instant_broadcast(target_user, admin_user, reason, amount):
             amount=amount,
             total=target_user.available_points
         )
-        speaker_client.send_text(text)
+        ok = speaker_client.send_text(text)
+        if not ok:
+            app.logger.warning(
+                '[Broadcast] send_text returned False — speaker not connected yet; '
+                'target=%s reason=%s amount=%s', target_user.real_name, reason, amount
+            )
     except Exception:
-        pass
+        app.logger.exception(
+            '[Broadcast] unexpected error during instant broadcast '
+            'target=%s reason=%s amount=%s', target_user.real_name, reason, amount
+        )
 
 
 # ==================== 文件上传 API ====================
@@ -261,16 +271,15 @@ def login():
 
 @app.route('/api/auth/child-profiles', methods=['GET'])
 def get_child_profiles():
-    """获取所有儿童账号的公开信息（头像、昵称、username），不返回密码和图案"""
+    """获取所有儿童账号的展示信息（仅 id/real_name/avatar），不返回任何凭证数据"""
     children = User.query.filter_by(is_child=True, role='user').all()
     return jsonify({
         'code': 200,
         'data': [
             {
-                'username': u.username,
-                'name': u.real_name,
+                'id': u.id,
+                'real_name': u.real_name,
                 'avatar': u.avatar or '👦',
-                'role': u.role
             }
             for u in children
         ]
@@ -279,19 +288,19 @@ def get_child_profiles():
 
 @app.route('/api/auth/child-login', methods=['POST'])
 def child_login():
-    """儿童图案密码登录：接收 username + pattern 序列，后端比对后签发 token"""
+    """儿童图案密码登录：接收 id + pattern，后端哈希比对后签发 token"""
     data = request.get_json()
-    username = data.get('username')
+    user_id = data.get('id')
     pattern = data.get('pattern')  # list[int]
 
-    if not username or pattern is None:
+    if not user_id or pattern is None:
         return jsonify({'code': 400, 'message': '参数不完整'}), 400
 
-    user = User.query.filter_by(username=username, is_child=True).first()
+    user = User.query.filter_by(id=user_id, is_child=True).first()
     if not user:
         return jsonify({'code': 401, 'message': '账号不存在'}), 401
 
-    if not user.child_pattern or list(pattern) != list(user.child_pattern):
+    if not user.check_pattern(pattern):
         return jsonify({'code': 401, 'message': '图案密码错误'}), 401
 
     access_token = create_access_token(identity=str(user.id))
@@ -454,13 +463,21 @@ def create_user():
     if User.query.filter_by(username=username).first():
         return jsonify({'code': 400, 'message': '用户名已存在'}), 400
 
+    # B-09: 非超管只能创建普通用户，强制覆盖调用方传入的权限字段
+    if current_user.is_super_admin:
+        role = data.get('role', 'user')
+        is_super_admin = data.get('is_super_admin', False)
+    else:
+        role = 'user'
+        is_super_admin = False
+
     user = User(
         username=username,
         real_name=real_name,
         email=data.get('email'),
         phone=data.get('phone'),
-        role=data.get('role', 'user'),
-        is_super_admin=data.get('is_super_admin', False) if current_user.is_super_admin else False
+        role=role,
+        is_super_admin=is_super_admin
     )
     user.set_password(password)
 
@@ -482,7 +499,7 @@ def update_user(user_id):
     current_user = User.query.get(current_user_id)
 
     # 只能修改自己的信息或管理员可以修改所有人
-    if current_user.role != 'admin' and current_user_id != user_id:
+    if current_user.role != 'admin' and int(current_user_id) != user_id:
         return jsonify({'code': 403, 'message': '无权限操作'}), 403
 
     user = User.query.get(user_id)
@@ -509,7 +526,10 @@ def update_user(user_id):
         if 'is_child' in data:
             user.is_child = bool(data['is_child'])
         if 'child_pattern' in data:
-            user.child_pattern = data['child_pattern'] if data['child_pattern'] else None
+            if data['child_pattern']:
+                user.set_pattern(data['child_pattern'])
+            else:
+                user.child_pattern = None
 
     db.session.commit()
 
@@ -894,9 +914,8 @@ def delete_product(product_id):
 @app.route('/api/exchanges', methods=['POST'])
 @jwt_required()
 def create_exchange():
-    """创建兑换记录"""
+    """创建兑换记录（悲观锁防并发超扣）"""
     current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
 
     data = request.get_json()
     product_id = data.get('product_id')
@@ -905,41 +924,73 @@ def create_exchange():
     if not product_id:
         return jsonify({'code': 400, 'message': '商品ID不能为空'}), 400
 
-    product = Product.query.get(product_id)
-    if not product:
+    # 先做无锁预检，减少锁持有时间
+    pre_product = Product.query.get(product_id)
+    if not pre_product:
         return jsonify({'code': 404, 'message': '商品不存在'}), 404
-
-    if product.status != 'on_shelf':
+    if pre_product.status != 'on_shelf':
         return jsonify({'code': 400, 'message': '商品已下架，无法兑换'}), 400
 
-    if product.stock < quantity:
-        return jsonify({'code': 400, 'message': '商品库存不足'}), 400
+    try:
+        # 悲观锁：锁定用户行和商品行，防止并发超扣
+        user = (
+            db.session.query(User)
+            .with_for_update()
+            .filter_by(id=current_user_id)
+            .first()
+        )
+        product = (
+            db.session.query(Product)
+            .with_for_update()
+            .filter_by(id=product_id)
+            .first()
+        )
 
-    points_needed = product.points_required * quantity
-    if user.available_points < points_needed:
-        return jsonify({'code': 400, 'message': '积分不足'}), 400
+        if not user or not product:
+            db.session.rollback()
+            return jsonify({'code': 404, 'message': '用户或商品不存在'}), 404
 
-    # 创建兑换记录（盲盒随机抽奖）
-    blind_box_result = None
-    if product.is_blind_box:
-        blind_box_result = random.choice(BLIND_BOX_PRIZES)
+        # 加锁后再次校验状态（防止锁等待期间状态变更）
+        if product.status != 'on_shelf':
+            db.session.rollback()
+            return jsonify({'code': 400, 'message': '商品已下架，无法兑换'}), 400
 
-    record = ExchangeRecord(
-        user_id=current_user_id,
-        product_id=product_id,
-        product_name=product.name,
-        points_spent=points_needed,
-        quantity=quantity,
-        status='completed',
-        remark=f'盲盒抽奖结果：{blind_box_result}' if blind_box_result else None
-    )
+        if product.stock < quantity:
+            db.session.rollback()
+            return jsonify({'code': 400, 'message': '商品库存不足'}), 400
 
-    # 扣除积分和库存
-    user.available_points -= points_needed
-    product.stock -= quantity
+        points_needed = product.points_required * quantity
+        if user.available_points < points_needed:
+            db.session.rollback()
+            return jsonify({'code': 400, 'message': '积分不足'}), 400
 
-    db.session.add(record)
-    db.session.commit()
+        # 盲盒随机抽奖
+        blind_box_result = None
+        if product.is_blind_box:
+            blind_box_result = random.choice(BLIND_BOX_PRIZES)
+
+        # B-07: 初始状态为 pending，由舰长在后台确认发货后流转为 completed
+        record = ExchangeRecord(
+            user_id=current_user_id,
+            product_id=product_id,
+            product_name=product.name,
+            points_spent=points_needed,
+            quantity=quantity,
+            status='pending',
+            remark=f'盲盒抽奖结果：{blind_box_result}' if blind_box_result else None
+        )
+
+        # 在同一事务内原子扣减积分和库存
+        user.available_points -= points_needed
+        product.stock -= quantity
+
+        db.session.add(record)
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+        app.logger.exception('[Exchange] create_exchange failed')
+        return jsonify({'code': 500, 'message': '兑换失败，请重试'}), 500
 
     return jsonify({
         'code': 200,
@@ -1021,8 +1072,11 @@ def cancel_exchange(record_id):
     if current_user.role != 'admin' and record.user_id != current_user_id:
         return jsonify({'code': 403, 'message': '无权限操作'}), 403
 
-    if record.status != 'completed':
-        return jsonify({'code': 400, 'message': '只能取消已完成的兑换'}), 400
+    # B-07: pending 和 completed 均可取消；cancelled 不可重复取消
+    if record.status == 'cancelled':
+        return jsonify({'code': 400, 'message': '该兑换已取消'}), 400
+    if record.status not in ('pending', 'completed'):
+        return jsonify({'code': 400, 'message': '当前状态不可取消'}), 400
 
     # 退回积分
     user = User.query.get(record.user_id)
@@ -1432,82 +1486,103 @@ def get_task_logs():
 @app.route('/api/task-logs/<int:log_id>/approve', methods=['POST'])
 @jwt_required()
 def approve_task_log(log_id):
-    """管理员审批通过，自动发放能量"""
+    """管理员审批通过，自动发放能量（悲观锁防双重结算）"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
     if current_user.role != 'admin':
         return jsonify({'code': 403, 'message': '无权限操作'}), 403
 
-    log = TaskLog.query.get(log_id)
-    if not log:
-        return jsonify({'code': 404, 'message': '记录不存在'}), 404
-    if log.status != 'pending':
-        return jsonify({'code': 400, 'message': '该记录已处理'}), 400
+    try:
+        # 锁定 task_log 行，阻止并发审批同一条记录
+        log = (
+            db.session.query(TaskLog)
+            .with_for_update()
+            .filter_by(id=log_id)
+            .first()
+        )
+        if not log:
+            db.session.rollback()
+            return jsonify({'code': 404, 'message': '记录不存在'}), 404
+        if log.status != 'pending':
+            db.session.rollback()
+            return jsonify({'code': 400, 'message': '该记录已处理'}), 400
 
-    task = Task.query.get(log.task_id)
-    # 普通管理员只能审批自己负责的任务
-    if not current_user.is_super_admin:
-        if task.reviewer_id is not None and task.reviewer_id != int(current_user_id):
-            return jsonify({'code': 403, 'message': '该任务不在您的审批范围内'}), 403
+        task = Task.query.get(log.task_id)
+        # 普通管理员只能审批自己负责的任务
+        if not current_user.is_super_admin:
+            if task.reviewer_id is not None and task.reviewer_id != int(current_user_id):
+                db.session.rollback()
+                return jsonify({'code': 403, 'message': '该任务不在您的审批范围内'}), 403
 
-    user = User.query.get(log.user_id)
+        # 锁定用户行，防止并发写余额
+        user = (
+            db.session.query(User)
+            .with_for_update()
+            .filter_by(id=log.user_id)
+            .first()
+        )
 
-    log.status = 'approved'
-    user.total_points += task.energy_reward
-    user.available_points += task.energy_reward
+        log.status = 'approved'
+        user.total_points += task.energy_reward
+        user.available_points += task.energy_reward
 
-    # 连击追踪
-    today = datetime.utcnow().date()
-    if user.last_active_date == today:
-        pass  # 同一天多次完成任务，不重复计算连击
-    elif user.last_active_date == today - timedelta(days=1):
-        user.streak_days = (user.streak_days or 0) + 1
-    else:
-        user.streak_days = 1
-    user.last_active_date = today
+        # 连击追踪
+        today = datetime.utcnow().date()
+        if user.last_active_date == today:
+            pass  # 同一天多次完成任务，不重复计算连击
+        elif user.last_active_date == today - timedelta(days=1):
+            user.streak_days = (user.streak_days or 0) + 1
+        else:
+            user.streak_days = 1
+        user.last_active_date = today
 
-    # 7天连击奖励：星云爆发 +10 能量
-    streak_bonus = 0
-    if user.streak_days > 0 and user.streak_days % 7 == 0:
-        streak_bonus = 10
-        user.total_points += streak_bonus
-        user.available_points += streak_bonus
-        bonus_record = ThumbsRecord(
+        # 7天连击奖励：星云爆发 +10 能量
+        streak_bonus = 0
+        if user.streak_days > 0 and user.streak_days % 7 == 0:
+            streak_bonus = 10
+            user.total_points += streak_bonus
+            user.available_points += streak_bonus
+            bonus_record = ThumbsRecord(
+                user_id=log.user_id,
+                thumb_type='double',
+                points=streak_bonus,
+                reason=f'星云爆发！连续完成任务 {user.streak_days} 天',
+                given_by=current_user_id,
+                admin_id=current_user_id
+            )
+            db.session.add(bonus_record)
+
+        # 30%概率掉落飞船碎片
+        fragment_drop = None
+        if random.random() < 0.3:
+            parts = ['engine', 'radar', 'hull']
+            fragment_drop = random.choice(parts)
+            frags = user.fragments or {'engine': 0, 'radar': 0, 'hull': 0}
+            frags[fragment_drop] = frags.get(fragment_drop, 0) + 1
+            user.fragments = frags
+
+        thumb_record = ThumbsRecord(
             user_id=log.user_id,
-            thumb_type='double',
-            points=streak_bonus,
-            reason=f'星云爆发！连续完成任务 {user.streak_days} 天',
+            thumb_type='single' if task.energy_reward <= 1 else 'double',
+            points=task.energy_reward,
+            reason=f'完成任务：{task.title}',
             given_by=current_user_id,
             admin_id=current_user_id
         )
-        db.session.add(bonus_record)
+        db.session.add(thumb_record)
+        db.session.commit()
 
-    # 30%概率掉落飞船碎片
-    fragment_drop = None
-    if random.random() < 0.3:
-        parts = ['engine', 'radar', 'hull']
-        fragment_drop = random.choice(parts)
-        frags = user.fragments or {'engine': 0, 'radar': 0, 'hull': 0}
-        frags[fragment_drop] = frags.get(fragment_drop, 0) + 1
-        user.fragments = frags
+    except Exception:
+        db.session.rollback()
+        app.logger.exception('[TaskLog] approve_task_log failed log_id=%s', log_id)
+        return jsonify({'code': 500, 'message': '审批失败，请重试'}), 500
 
-    thumb_record = ThumbsRecord(
-        user_id=log.user_id,
-        thumb_type='single' if task.energy_reward <= 1 else 'double',
-        points=task.energy_reward,
-        reason=f'完成任务：{task.title}',
-        given_by=current_user_id,
-        admin_id=current_user_id
-    )
-    db.session.add(thumb_record)
-    db.session.commit()
-
-    # 即时播报
+    # 事务提交后再播报（不影响数据一致性）
     _try_instant_broadcast(
         target_user=user,
         admin_user=current_user,
         reason=f'完成任务：{task.title}',
-        amount=task.energy_reward
+        amount=task.energy_reward + streak_bonus
     )
 
     msg = f'已批准，已发放 {task.energy_reward} 点能量'
@@ -1549,39 +1624,57 @@ def reject_task_log(log_id):
 @app.route('/api/thumbs/<int:record_id>/undo', methods=['POST'])
 @jwt_required()
 def undo_thumbs(record_id):
-    """撤销星辰币记录（15分钟内）"""
+    """撤销星辰币记录（15分钟内，悲观锁防重复撤销）"""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
     if current_user.role != 'admin':
         return jsonify({'code': 403, 'message': '无权限操作'}), 403
 
-    record = ThumbsRecord.query.get(record_id)
-    if not record:
-        return jsonify({'code': 404, 'message': '记录不存在'}), 404
-    if record.is_deleted:
-        return jsonify({'code': 400, 'message': '该记录已撤销'}), 400
-
-    age = datetime.utcnow() - record.created_at
-    if age > timedelta(minutes=15):
-        return jsonify({'code': 400, 'message': '超过15分钟，无法撤销'}), 400
-
-    user = User.query.get(record.user_id)
-    if not user:
-        return jsonify({'code': 404, 'message': '用户不存在'}), 404
-
     try:
+        # 锁定记录行，阻止并发撤销同一记录
+        record = (
+            db.session.query(ThumbsRecord)
+            .with_for_update()
+            .filter_by(id=record_id)
+            .first()
+        )
+        if not record:
+            db.session.rollback()
+            return jsonify({'code': 404, 'message': '记录不存在'}), 404
+        if record.is_deleted:
+            db.session.rollback()
+            return jsonify({'code': 400, 'message': '该记录已撤销'}), 400
+
+        age = datetime.utcnow() - record.created_at
+        if age > timedelta(minutes=15):
+            db.session.rollback()
+            return jsonify({'code': 400, 'message': '超过15分钟，无法撤销'}), 400
+
+        user = (
+            db.session.query(User)
+            .with_for_update()
+            .filter_by(id=record.user_id)
+            .first()
+        )
+        if not user:
+            db.session.rollback()
+            return jsonify({'code': 404, 'message': '用户不存在'}), 404
+
         record.is_deleted = True
         if record.points > 0:
-            user.total_points -= record.points
-            user.available_points -= record.points
-            if user.available_points < 0:
-                user.available_points = 0
+            # 撤销正向发分：扣回 total_points 和 available_points，均不低于 0
+            user.total_points = max(0, user.total_points - record.points)
+            user.available_points = max(0, user.available_points - record.points)
         else:
+            # 撤销扣分（归还）：points 为负，减去负数等于加回来
             user.total_points -= record.points
             user.available_points -= record.points
+
         db.session.commit()
+
     except Exception:
         db.session.rollback()
+        app.logger.exception('[Undo] undo_thumbs failed record_id=%s', record_id)
         return jsonify({'code': 500, 'message': '撤销失败，请重试'}), 500
 
     return jsonify({'code': 200, 'message': '已撤销该记录，能量已恢复'})
@@ -1896,9 +1989,13 @@ def _init_app():
 
         admin = User.query.filter_by(username='admin').first()
         if not admin:
-            admin = User(username='admin', real_name='系统管理员', role='admin')
+            admin = User(username='admin', real_name='系统管理员', role='admin', is_super_admin=True)
             admin.set_password('admin123')
             db.session.add(admin)
+            db.session.commit()
+        elif not admin.is_super_admin:
+            # 修复存量 admin 账号缺少 is_super_admin 的问题
+            admin.is_super_admin = True
             db.session.commit()
 
         if not SystemSettings.query.first():

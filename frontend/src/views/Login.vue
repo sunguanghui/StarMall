@@ -208,7 +208,7 @@
             <div v-else class="child-list">
               <div
                 v-for="child in children"
-                :key="child.username"
+                :key="child.id"
                 class="child-card"
                 @click="selectChild(child)"
               >
@@ -216,7 +216,7 @@
                   <span v-if="!avatarIsUrl(child.avatar)">{{ resolveAvatar(child.avatar) }}</span>
                   <el-avatar v-else :size="52" :src="child.avatar" />
                 </div>
-                <div class="child-name">{{ child.name }}</div>
+                <div class="child-name">{{ child.real_name }}</div>
               </div>
             </div>
           </div>
@@ -228,7 +228,7 @@
                 <span v-if="!avatarIsUrl(selectedChild.avatar)">{{ resolveAvatar(selectedChild.avatar) }}</span>
                 <el-avatar v-else :size="28" :src="selectedChild.avatar" />
               </span>
-              <span class="child-name-sm">{{ selectedChild.name }}</span>
+              <span class="child-name-sm">{{ selectedChild.real_name }}</span>
               <button class="back-child-btn" @click="resetChildLogin">✕ 切换</button>
             </div>
 
@@ -359,8 +359,7 @@ const loadChildProfiles = async () => {
     const res = await fetch('/api/auth/child-profiles')
     const json = await res.json()
     if (json.code === 200 && Array.isArray(json.data)) {
-      // 强制过滤，只保留 role == 'user' 的普通宇航员
-      children.value = json.data.filter(c => c.role === 'user' || !c.role)
+      children.value = json.data
     } else {
       children.value = []
     }
@@ -409,14 +408,14 @@ const addPattern = async (idx) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: selectedChild.value.username,
+          id: selectedChild.value.id,
           pattern: patternInput.value
         })
       })
       const json = await res.json()
       if (json.code === 200) {
         userStore.setLoginData(json.data)
-        ElMessage.success(`欢迎回来，${selectedChild.value.name}！🚀`)
+        ElMessage.success(`欢迎回来，${selectedChild.value.real_name}！🚀`)
         router.push('/')
       } else {
         patternError.value = true

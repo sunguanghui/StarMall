@@ -11,6 +11,7 @@ class SpeakerClient:
     def __init__(self):
         self._lock = threading.Lock()
         self._ws = None
+        self._connected = False          # 仅 _on_open 才设为 True，修复竞态
         self._heartbeat_timer = None
         self._running = False
         self._speaker_ip = ''
@@ -40,6 +41,11 @@ class SpeakerClient:
         self._running = False
         self._disconnect()
 
+    def is_connected(self):
+        """返回当前是否已建立并就绪的 WebSocket 连接"""
+        with self._lock:
+            return self._connected and self._ws is not None
+
     def _get_url(self):
         return f'ws://{self._speaker_ip}:{self._speaker_port}/ws/status'
 
@@ -61,16 +67,22 @@ class SpeakerClient:
                 on_error=self._on_error,
                 on_close=self._on_close,
             )
+            # ws 对象先存入，但 _connected 保持 False，直到 _on_open 触发
             with self._lock:
                 self._ws = ws
+                self._connected = False
             self._reconnect_delay = 3
             ws.run_forever()
         except Exception as e:
             logger.error(f'[SpeakerClient] Connection error: {e}')
+            with self._lock:
+                self._connected = False
             self._handle_reconnect()
 
     def _on_open(self, ws):
         logger.info('[SpeakerClient] Connected')
+        with self._lock:
+            self._connected = True   # TCP 握手完成才标记已连接
         self._reconnect_delay = 3
         self._start_heartbeat()
 
@@ -79,9 +91,13 @@ class SpeakerClient:
 
     def _on_error(self, ws, error):
         logger.warning(f'[SpeakerClient] Error: {error}')
+        with self._lock:
+            self._connected = False
 
     def _on_close(self, ws, close_status_code, close_msg):
         logger.info('[SpeakerClient] Connection closed')
+        with self._lock:
+            self._connected = False
         self._stop_heartbeat()
         self._handle_reconnect()
 
@@ -100,11 +116,14 @@ class SpeakerClient:
             return
         with self._lock:
             ws = self._ws
-        if ws:
+            connected = self._connected
+        if ws and connected:
             try:
                 ws.send(json.dumps({'action': 'ping'}))
             except Exception as e:
                 logger.warning(f'[SpeakerClient] Heartbeat error: {e}')
+                with self._lock:
+                    self._connected = False
         self._heartbeat_timer = threading.Timer(self._heartbeat_interval, self._send_ping)
         self._heartbeat_timer.daemon = True
         self._heartbeat_timer.start()
@@ -119,6 +138,7 @@ class SpeakerClient:
         with self._lock:
             ws = self._ws
             self._ws = None
+            self._connected = False
         if ws:
             try:
                 ws.close()
@@ -129,9 +149,13 @@ class SpeakerClient:
         """发送语音播报文本，返回是否发送成功"""
         with self._lock:
             ws = self._ws
-        if not ws:
-            logger.warning('[SpeakerClient] Not connected, message dropped')
+            connected = self._connected
+
+        # 同时检查 ws 对象存在 AND 连接已就绪（_on_open 已触发）
+        if not ws or not connected:
+            logger.warning('[SpeakerClient] Not connected or not ready, message dropped')
             return False
+
         payload = {
             'action': 'message',
             'data': {
@@ -147,6 +171,8 @@ class SpeakerClient:
             return True
         except Exception as e:
             logger.error(f'[SpeakerClient] Send error: {e}')
+            with self._lock:
+                self._connected = False
             return False
 
 
