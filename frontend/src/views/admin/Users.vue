@@ -21,7 +21,7 @@
       </el-form>
 
       <!-- ===== PC 端表格（> 768px） ===== -->
-      <div class="table-scroll-wrapper pc-only">
+      <div class="table-scroll-wrapper pc-table-view">
         <el-table :data="users" style="width: 100%" v-loading="loading">
           <el-table-column label="头像" width="70">
             <template #default="{ row }">
@@ -72,7 +72,7 @@
       </div>
 
       <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
-      <div class="mobile-only mobile-card-list" v-loading="loading">
+      <div class="mobile-card-view mobile-card-list" v-loading="loading">
         <div v-for="row in users" :key="row.id" class="user-card">
           <!-- 卡片顶部：头像 + 姓名 + 角色标签 -->
           <div class="user-card-top">
@@ -520,6 +520,25 @@ onUnmounted(() => {
   .pagination {
     justify-content: center;
     flex-wrap: wrap;
+  }
+}
+
+/* --- 响应式双轨渲染强制隔离 --- */
+/* 默认（PC端）：显示表格，隐藏卡片 */
+.pc-table-view {
+  display: block;
+}
+.mobile-card-view {
+  display: none;
+}
+
+/* 移动端（屏幕宽度小于 768px）：隐藏表格，显示卡片 */
+@media screen and (max-width: 767px) {
+  .pc-table-view {
+    display: none !important;
+  }
+  .mobile-card-view {
+    display: block !important;
   }
 }
 

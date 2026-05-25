@@ -26,42 +26,111 @@
         </el-form-item>
       </el-form>
 
-      <el-table :data="products" style="width: 100%" v-loading="loading">
-        <el-table-column prop="name" label="商品名称" show-overflow-tooltip />
-        <el-table-column prop="points_required" label="所需能量" width="100" />
-        <el-table-column prop="stock" label="库存" width="80" />
-        <el-table-column label="盲盒" width="70">
-          <template #default="{ row }">
-            <el-tag v-if="row.is_blind_box" type="warning" size="small">🎁</el-tag>
-            <span v-else style="color: #ccc;">—</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status_name" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'on_shelf' ? 'success' : 'info'" size="small">
-              {{ row.status_name }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="sort_order" label="排序" width="80" />
-        <el-table-column prop="created_at" label="创建时间" width="180" />
-        <el-table-column label="操作" width="220" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="warning" @click="handleToggleStatus(row)">
-              {{ row.status === 'on_shelf' ? '下架' : '上架' }}
-            </el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <!-- ===== PC 端表格（> 768px） ===== -->
+      <div class="pc-table-view">
+        <el-table :data="products" style="width: 100%" v-loading="loading">
+          <el-table-column prop="name" label="商品名称" show-overflow-tooltip />
+          <el-table-column prop="points_required" label="所需能量" width="100" />
+          <el-table-column prop="stock" label="库存" width="80" />
+          <el-table-column label="盲盒" width="70">
+            <template #default="{ row }">
+              <el-tag v-if="row.is_blind_box" type="warning" size="small">🎁</el-tag>
+              <span v-else style="color: #ccc;">—</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status_name" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'on_shelf' ? 'success' : 'info'" size="small">
+                {{ row.status_name }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="sort_order" label="排序" width="80" />
+          <el-table-column prop="created_at" label="创建时间" width="180" />
+          <el-table-column label="操作" width="220" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+              <el-button link type="warning" @click="handleToggleStatus(row)">
+                {{ row.status === 'on_shelf' ? '下架' : '上架' }}
+              </el-button>
+              <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
+      <div class="mobile-card-view mobile-card-list" v-loading="loading">
+        <div
+          v-for="row in products"
+          :key="row.id"
+          class="product-card"
+          :class="{ 'product-card--off': row.status !== 'on_shelf' }"
+        >
+          <!-- 顶部：图片 + 名称 + 状态标签 -->
+          <div class="product-card__top">
+            <div class="product-card__img-wrap">
+              <img
+                v-if="row.image_url"
+                :src="row.image_url"
+                class="product-card__img"
+                alt=""
+              />
+              <div v-else class="product-card__img-placeholder">🛒</div>
+            </div>
+            <div class="product-card__info">
+              <div class="product-card__name">
+                {{ row.name }}
+                <el-tag v-if="row.is_blind_box" type="warning" size="small" style="margin-left:4px;">🎁</el-tag>
+              </div>
+              <div class="product-card__badges">
+                <el-tag :type="row.status === 'on_shelf' ? 'success' : 'info'" size="small">
+                  {{ row.status_name }}
+                </el-tag>
+              </div>
+              <div class="product-card__price">{{ row.points_required }} ⚡</div>
+            </div>
+          </div>
+
+          <!-- 中部：库存 + 排序 -->
+          <div class="product-card__meta">
+            <div class="product-card__meta-item">
+              <span class="meta-label">库存</span>
+              <span class="meta-value" :class="{ 'meta-value--low': row.stock === 0 }">
+                {{ row.stock === 0 ? '已售罄' : row.stock }}
+              </span>
+            </div>
+            <div class="product-card__meta-item">
+              <span class="meta-label">排序</span>
+              <span class="meta-value">{{ row.sort_order }}</span>
+            </div>
+            <div class="product-card__meta-item">
+              <span class="meta-label">创建时间</span>
+              <span class="meta-value meta-value--time">{{ row.created_at }}</span>
+            </div>
+          </div>
+
+          <!-- 底部操作按钮 -->
+          <div class="product-card__actions">
+            <el-button size="small" type="primary" plain @click="handleEdit(row)">编辑</el-button>
+            <el-button
+              size="small"
+              type="warning"
+              plain
+              @click="handleToggleStatus(row)"
+            >{{ row.status === 'on_shelf' ? '下架' : '上架' }}</el-button>
+            <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+          </div>
+        </div>
+        <el-empty v-if="!loading && products.length === 0" description="暂无商品数据" />
+      </div>
 
       <el-pagination
         v-if="total > 0"
         v-model:current-page="page"
         v-model:page-size="pageSize"
         :total="total"
-        layout="total, prev, pager, next, jumper"
+        :layout="isMobile ? 'prev, pager, next' : 'total, prev, pager, next, jumper'"
         @current-change="loadProducts"
         class="pagination"
       />
@@ -269,13 +338,78 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.admin-products {
-  max-width: 1400px;
+.admin-products { max-width: 1400px; }
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.image-uploader {
-  display: inline-block;
+.search-form { margin-bottom: 20px; }
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
+
+/* ===== PC / 移动互斥 ===== */
+.pc-only     { display: block; }
+.mobile-only { display: none; }
+
+@media (max-width: 768px) {
+  .pc-only     { display: none; }
+  .mobile-only { display: block; }
+
+  .search-form { margin-bottom: 12px; }
+
+  .pagination {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  :deep(.el-dialog) {
+    margin: 8px auto !important;
+    border-radius: 18px !important;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px 14px !important;
+  }
+
+  .image-uploader :deep(.el-upload) {
+    width: 120px;
+    height: 120px;
+  }
+
+  .upload-image {
+    width: 120px;
+    height: 120px;
+  }
+}
+
+/* --- 响应式双轨渲染强制隔离 --- */
+/* 默认（PC端）：显示表格，隐藏卡片 */
+.pc-table-view {
+  display: block;
+}
+.mobile-card-view {
+  display: none;
+}
+
+/* 移动端（屏幕宽度小于 768px）：隐藏表格，显示卡片 */
+@media screen and (max-width: 767px) {
+  .pc-table-view {
+    display: none !important;
+  }
+  .mobile-card-view {
+    display: block !important;
+  }
+}
+
+/* ===== dialog 图片上传 ===== */
+.image-uploader { display: inline-block; }
 
 .image-uploader :deep(.el-upload) {
   border: 1px dashed #d9d9d9;
@@ -291,9 +425,7 @@ onUnmounted(() => {
   justify-content: center;
 }
 
-.image-uploader :deep(.el-upload:hover) {
-  border-color: #409eff;
-}
+.image-uploader :deep(.el-upload:hover) { border-color: #409eff; }
 
 .upload-image {
   width: 178px;
@@ -312,19 +444,132 @@ onUnmounted(() => {
   margin-top: 8px;
 }
 
-.card-header {
+/* ===== 移动端商品卡片 ===== */
+.mobile-card-list {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 60px;
+}
+
+.product-card {
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1.5px solid #d8eaff;
+  background: linear-gradient(135deg, #f5faff 0%, #fafcff 100%);
+  box-shadow: 0 2px 10px rgba(64, 158, 255, 0.07);
+}
+
+.product-card--off {
+  border-color: #ddd;
+  background: linear-gradient(135deg, #f8f8f8 0%, #f3f3f3 100%);
+  opacity: 0.75;
+}
+
+.product-card__top {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.product-card__img-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f0f0f0;
+  border: 1px solid #e8e8e8;
+  display: flex;
   align-items: center;
+  justify-content: center;
 }
 
-.search-form {
-  margin-bottom: 20px;
+.product-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.pagination {
-  margin-top: 20px;
+.product-card__img-placeholder {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.product-card__info {
+  flex: 1;
+  min-width: 0;
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.product-card__name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  word-break: break-word;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.product-card__badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.product-card__price {
+  font-size: 18px;
+  font-weight: 900;
+  color: #FF6B9D;
+}
+
+.product-card__meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.product-card__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-label {
+  font-size: 11px;
+  color: #bbb;
+}
+
+.meta-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+}
+
+.meta-value--low {
+  color: #f56c6c;
+}
+
+.meta-value--time {
+  font-size: 12px;
+  font-weight: 400;
+  color: #999;
+}
+
+.product-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
   justify-content: flex-end;
 }
 </style>

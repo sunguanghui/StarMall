@@ -15,7 +15,8 @@
         </div>
       </template>
 
-      <div class="table-scroll-wrapper">
+      <!-- ===== PC 端表格（> 768px） ===== -->
+      <div class="table-scroll-wrapper pc-table-view">
         <el-table :data="tasks" v-loading="tasksLoading" style="width:100%">
           <el-table-column prop="title" label="任务名称" min-width="160" show-overflow-tooltip />
           <el-table-column prop="type_name" label="类型" width="120">
@@ -47,6 +48,64 @@
             </template>
           </el-table-column>
         </el-table>
+      </div>
+
+      <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
+      <div class="mobile-card-view mobile-card-list" v-loading="tasksLoading">
+        <div
+          v-for="row in tasks"
+          :key="row.id"
+          class="task-card"
+          :class="{ 'task-card--inactive': !row.is_active }"
+        >
+          <!-- 顶部：任务名 + 启用状态标签 -->
+          <div class="task-card__top">
+            <div class="task-card__title-wrap">
+              <span class="task-card__title">{{ row.title }}</span>
+            </div>
+            <el-tag :type="row.is_active ? 'success' : 'info'" size="small" class="task-card__status">
+              {{ row.is_active ? '已启用' : '已停用' }}
+            </el-tag>
+          </div>
+
+          <!-- 中部：类型、奖励能量、专属赋能官 -->
+          <div class="task-card__meta">
+            <div class="task-card__meta-item">
+              <span class="meta-label">类型</span>
+              <el-tag :type="row.type === 'daily' ? 'primary' : 'warning'" size="small">
+                {{ row.type_name }}
+              </el-tag>
+            </div>
+            <div class="task-card__meta-item">
+              <span class="meta-label">奖励能量</span>
+              <span class="meta-value energy">+{{ row.energy_reward }} ⚡</span>
+            </div>
+            <div class="task-card__meta-item">
+              <span class="meta-label">赋能官</span>
+              <span class="meta-value">{{ row.reviewer_name || '全体领航员' }}</span>
+            </div>
+          </div>
+
+          <!-- 底部：创建时间 + 操作按钮 -->
+          <div class="task-card__footer">
+            <span class="task-card__time">🕐 {{ row.created_at }}</span>
+            <div class="task-card__actions">
+              <el-button
+                size="small"
+                type="primary"
+                plain
+                @click="handleEdit(row)"
+              >编辑</el-button>
+              <el-button
+                size="small"
+                :type="row.is_active ? 'danger' : 'success'"
+                plain
+                @click="handleToggle(row)"
+              >{{ row.is_active ? '停用' : '启用' }}</el-button>
+            </div>
+          </div>
+        </div>
+        <el-empty v-if="!tasksLoading && tasks.length === 0" description="暂无任务蓝图" />
       </div>
     </el-card>
 
@@ -201,4 +260,140 @@ onUnmounted(() => {
 .text-muted { color: #ccc; font-size: 13px; }
 .form-tip { font-size: 12px; color: #aaa; margin-top: 4px; }
 .table-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ===== PC / 移动互斥 ===== */
+.pc-only     { display: block; }
+.mobile-only { display: none; }
+
+@media (max-width: 768px) {
+  .pc-only     { display: none; }
+  .mobile-only { display: block; }
+
+  :deep(.el-dialog) {
+    margin: 8px auto !important;
+    border-radius: 18px !important;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px 14px !important;
+  }
+}
+
+/* --- 响应式双轨渲染强制隔离 --- */
+/* 默认（PC端）：显示表格，隐藏卡片 */
+.pc-table-view {
+  display: block;
+}
+.mobile-card-view {
+  display: none;
+}
+
+/* 移动端（屏幕宽度小于 768px）：隐藏表格，显示卡片 */
+@media screen and (max-width: 767px) {
+  .pc-table-view {
+    display: none !important;
+  }
+  .mobile-card-view {
+    display: block !important;
+  }
+}
+
+/* ===== 移动端任务卡片 ===== */
+.mobile-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 60px;
+}
+
+.task-card {
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1.5px solid #d0e8ff;
+  background: linear-gradient(135deg, #f5faff 0%, #f0f8ff 100%);
+  box-shadow: 0 2px 10px rgba(65, 88, 208, 0.07);
+}
+
+.task-card--inactive {
+  border-color: #ddd;
+  background: linear-gradient(135deg, #f8f8f8 0%, #f2f2f2 100%);
+  opacity: 0.7;
+}
+
+.task-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.task-card__title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-card__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  word-break: break-word;
+}
+
+.task-card__status {
+  flex-shrink: 0;
+}
+
+.task-card__meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.task-card__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-label {
+  font-size: 11px;
+  color: #bbb;
+}
+
+.meta-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+}
+
+.meta-value.energy {
+  font-size: 17px;
+  font-weight: 900;
+  color: #FF6B9D;
+}
+
+.task-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding-top: 8px;
+}
+
+.task-card__time {
+  font-size: 12px;
+  color: #bbb;
+}
+
+.task-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 </style>

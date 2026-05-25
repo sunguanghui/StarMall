@@ -122,7 +122,7 @@
       </template>
 
       <!-- ===== PC 端表格（> 768px） ===== -->
-      <div class="pc-only">
+      <div class="pc-table-view">
         <el-table :data="records" style="width: 100%" v-loading="loading">
           <el-table-column prop="user_name" label="用户" width="120" />
           <el-table-column prop="thumb_type_name" label="类型" width="150" />
@@ -151,7 +151,7 @@
       </div>
 
       <!-- ===== 移动端卡片列表（≤ 768px） ===== -->
-      <div class="mobile-only mobile-card-list" v-loading="loading">
+      <div class="mobile-card-view mobile-card-list" v-loading="loading">
         <div
           v-for="row in records"
           :key="row.id"
@@ -436,6 +436,15 @@ onUnmounted(() => {
     justify-content: center;
     flex-wrap: wrap;
   }
+}
+
+/* --- 响应式双轨渲染强制隔离 --- */
+.pc-table-view  { display: block; }
+.mobile-card-view { display: none; }
+
+@media screen and (max-width: 767px) {
+  .pc-table-view  { display: none !important; }
+  .mobile-card-view { display: block !important; }
 }
 
 /* ===== 移动端发放记录卡片 ===== */
