@@ -128,35 +128,64 @@ CREATE TABLE IF NOT EXISTS task_logs (
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务执行记录表';
 
--- 默认管理员账号 (密码: admin123)，超级管理员
+-- ==========================================
+-- 🚀 初始乘员编制写入 (默认密码已保留)
+-- ==========================================
+
+-- 1. 舰长 (密码: admin123)，超级管理员
 INSERT INTO users (username, password, real_name, role, is_super_admin, total_points, available_points, ship_level, streak_days) VALUES
-('admin', 'scrypt:32768:8:1$i0kfF5rTSvoYIK8w$f3a64acc3231e2ae09726f8ec928b75a5617105889add4813756d6adb6ed2ded6b5e8f4102732f34f40e3e48aec18baff3128f974d6933ea77eb71f7e3abadfd', '系统管理员', 'admin', 1, 0, 0, 1, 0);
+('admin', 'scrypt:32768:8:1$i0kfF5rTSvoYIK8w$f3a64acc3231e2ae09726f8ec928b75a5617105889add4813756d6adb6ed2ded6b5e8f4102732f34f40e3e48aec18baff3128f974d6933ea77eb71f7e3abadfd', '舰长', 'admin', 1, 0, 0, 1, 0);
 
--- 测试用户 (密码: user123)
-INSERT INTO users (username, password, real_name, email, total_points, available_points, ship_level, streak_days) VALUES
-('zhangsan', 'scrypt:32768:8:1$RYUIJQhxyh2NrIZM$bbdd6fa8eb3a1d72ae2c1eb347bb8363b61fd16951791512dcb7c2371ed97a32d9ee6edf95d1da739d1745492cc1cbddc53285cfd4b909c38f21dbebb531c4d6', '张三', 'zhangsan@example.com', 100, 100, 1, 0),
-('lisi', 'scrypt:32768:8:1$kbt6ZfAICQTlL1fX$fafbc667c308f90851d4e833757c558b4b79d1dc4a03addb9fe1c5a547faf1a4407e30bcf00fc99ee157b9031f59ad8977deb05ad4abe235b28ee2821586f673', '李四', 'lisi@example.com', 50, 50, 1, 0);
+-- 2. 领航员 - 方老师 (密码: user123)，普通管理员（审批任务、发分）
+INSERT INTO users (username, password, real_name, role, is_super_admin, total_points, available_points, ship_level, streak_days) VALUES
+('fang', 'scrypt:32768:8:1$RYUIJQhxyh2NrIZM$bbdd6fa8eb3a1d72ae2c1eb347bb8363b61fd16951791512dcb7c2371ed97a32d9ee6edf95d1da739d1745492cc1cbddc53285cfd4b909c38f21dbebb531c4d6', '方老师', 'admin', 0, 0, 0, 1, 0);
 
--- 示例任务数据（归属超级管理员，所有舰长均可审批）
+-- 3. 探索者 - 乔伊 (密码: user123)，初始自带 50 能量新兵津贴
+INSERT INTO users (username, password, real_name, role, is_super_admin, total_points, available_points, ship_level, streak_days) VALUES
+('joy', 'scrypt:32768:8:1$kbt6ZfAICQTlL1fX$fafbc667c308f90851d4e833757c558b4b79d1dc4a03addb9fe1c5a547faf1a4407e30bcf00fc99ee157b9031f59ad8977deb05ad4abe235b28ee2821586f673', '乔伊', 'user', 0, 50, 50, 1, 0);
+
+
+-- ==========================================
+-- 🎯 初始任务大厅数据 (全部归属舰长创建，所有领航员可审批)
+-- ==========================================
+
 INSERT INTO tasks (title, type, energy_reward, is_active, created_by) VALUES
-('完成今日阅读打卡', 'daily', 1, 1, 1),
-('整理自己的房间', 'daily', 1, 1, 1),
-('完成所有家庭作业', 'daily', 2, 1, 1),
-('坚持运动30分钟', 'daily', 1, 1, 1),
-('背诵10个英语单词', 'daily', 1, 1, 1),
-('完成一本书的阅读', 'milestone', 10, 1, 1),
-('期末考试进入班级前十', 'milestone', 20, 1, 1);
+-- 晨间任务
+('早起', 'daily', 1, 1, 1),
+('主动洗漱刷牙', 'daily', 1, 1, 1),
+('快速吃完早餐', 'daily', 2, 1, 1),
+('不看电视手机（早上）', 'daily', 1, 1, 1),
+('情绪稳定开心（早上）', 'daily', 1, 1, 1),
+-- 学校任务
+('早上主动收拾书包去上学', 'daily', 1, 1, 1),
+('每天举手回答问题次数超过3次', 'daily', 2, 1, 1),
+('听写全对（学校）', 'daily', 1, 1, 1),
+('计算练习全对（学校）', 'daily', 1, 1, 1),
+-- 托管班与作业
+('规定时间内写完作业', 'daily', 2, 1, 1),
+('听写全对（托管班）', 'daily', 1, 1, 1),
+('计算练习全对（托管班）', 'daily', 1, 1, 1),
+-- 晚间休整
+('书写工整美观', 'daily', 1, 1, 1),
+('主动收拾书包（晚上）', 'daily', 1, 1, 1),
+('主动整理文具、削笔', 'daily', 1, 1, 1),
+('不看电视手机（晚上）', 'daily', 1, 1, 1),
+('情绪稳定（晚上）', 'daily', 1, 1, 1),
+('主动洗漱、上床休息', 'daily', 2, 1, 1),
+-- 阶段里程碑
+('语文/数学大练习任意一科超过98分', 'milestone', 15, 1, 1),
+('语文/数学大练习两科满分', 'milestone', 40, 1, 1),
+('期末考试满分', 'milestone', 150, 1, 1);
 
--- 测试商品
-INSERT INTO products (name, description, points_required, stock, status, sort_order) VALUES
-('小米充电宝', '10000mAh 快充移动电源', 50, 10, 'on_shelf', 1),
-('星巴克咖啡券', '中杯任意饮品兑换券', 30, 20, 'on_shelf', 2),
-('定制水杯', '公司logo定制保温杯', 80, 5, 'on_shelf', 3),
-('京东卡100元', '京东购物卡100元面额', 100, 8, 'on_shelf', 4),
-('无线鼠标', '罗技无线办公鼠标', 60, 0, 'off_shelf', 5);
 
--- 测试星辰币记录
-INSERT INTO thumbs_records (user_id, thumb_type, points, reason, given_by, admin_id) VALUES
-(2, 'double', 5, '项目按时交付，表现优秀', 1, 1),
-(2, 'single', 1, '积极参与团队活动', 1, 1),
-(3, 'single', 1, '帮助同事解决技术问题', 1, 1);
+-- ==========================================
+-- 🛒 初始补给物资库房数据 (上架状态)
+-- ==========================================
+
+INSERT INTO products (name, description, points_required, stock, status, sort_order, is_blind_box) VALUES
+('免阅读一晚 (30分钟)', '豁免今晚的30分钟常规阅读，好好放松一下！', 35, 999, 'on_shelf', 1, 0),
+('免运动一晚 (跳绳+体前屈)', '豁免今晚的体能训练指标，缓解肌肉疲劳。', 40, 999, 'on_shelf', 2, 0),
+('小玩具 (空投盲盒)', '神秘的星际盲盒！里面可能是扭蛋、精美贴纸或小拼图。', 120, 10, 'on_shelf', 3, 1),
+('滑板', '一款酷炫的反重力滑行器，培养平衡力与勇气的最佳装备。', 800, 1, 'on_shelf', 4, 0),
+('头戴式耳机', '高保真声波沉浸头盔，畅游音乐宇宙的利器。', 1500, 1, 'on_shelf', 5, 0),
+('宠物玉米蛇', '外星系共生体幼崽。需要极度的自律与长期的责任心才能换取的终极奖励。', 3000, 1, 'on_shelf', 6, 0);
