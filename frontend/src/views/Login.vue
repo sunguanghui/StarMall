@@ -179,12 +179,6 @@
             </el-button>
           </el-form>
 
-          <div class="login-tips">
-            <p>🛸 默认账号</p>
-            <p>管理员: admin / admin123</p>
-            <p>普通用户: zhangsan / user123</p>
-          </div>
-
           <div class="register-link">
             还没有登舰通行证？<router-link to="/register">立即注册 ✨</router-link>
           </div>
@@ -801,24 +795,6 @@ const parallaxStyles = computed(() => ({
 .login-button:active {
   transform: scale(0.97) !important;
   box-shadow: 0 4px 16px rgba(255, 107, 157, 0.4) !important;
-}
-
-/* ===== 提示区域 ===== */
-.login-tips {
-  margin-top: 24px;
-  padding: 14px 18px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
-  line-height: 2;
-}
-
-.login-tips p:first-child {
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 2px;
 }
 
 /* ===== 注册链接 ===== */
