@@ -2,13 +2,13 @@
   <div class="wishlist-approval">
     <div class="page-header">
       <h2 class="page-title">💫 蓝图解析室</h2>
-      <p class="page-subtitle">审核宇航员提交的奖品心愿，批准后自动加入补给物资库房</p>
+      <p class="page-subtitle">审核宇航员提交的星际蓝图，批准后自动加入补给物资库房</p>
     </div>
 
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>心愿蓝图队列</span>
+          <span>星际蓝图解析队列</span>
           <el-select v-model="filterStatus" size="small" style="width:120px" @change="loadWishlists">
             <el-option label="待解析" value="pending" />
             <el-option label="已批准" value="approved" />
@@ -23,21 +23,21 @@
         <div class="table-scroll-wrapper">
           <el-table :data="wishlists" v-loading="loading" style="width:100%">
             <el-table-column prop="user_name" label="宇航员" width="100" />
-            <el-table-column prop="title" label="心愿蓝图名称" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="title" label="星际蓝图名称" min-width="160" show-overflow-tooltip />
             <el-table-column prop="expected_points" label="期望能量" width="110">
               <template #default="{ row }">{{ row.expected_points }} ⚡</template>
             </el-table-column>
-            <el-table-column label="状态" width="100">
+            <el-table-column label="解析状态" width="100">
               <template #default="{ row }">
                 <el-tag :type="statusTagType(row.status)" size="small">{{ row.status_name }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="created_at" label="提交时间" width="160" />
-            <el-table-column label="操作" width="200" fixed="right">
+            <el-table-column label="指令" width="200" fixed="right">
               <template #default="{ row }">
                 <template v-if="row.status === 'pending'">
                   <el-button link type="success" @click="handleApprove(row)">🔬 批准研发</el-button>
-                  <el-button link type="danger" @click="handleReject(row)">❌ 驳回申请</el-button>
+                  <el-button link type="danger" @click="handleReject(row)">❌ 驳回蓝图</el-button>
                 </template>
                 <span v-else class="text-muted">已处理</span>
               </template>
@@ -59,7 +59,7 @@
               'wish-card--rejected': row.status === 'rejected'
             }"
           >
-            <!-- 顶部：心愿名称 + 状态标签 -->
+            <!-- 顶部：蓝图名称 + 状态标签 -->
             <div class="wish-card__top">
               <div class="wish-card__title-wrap">
                 <span class="wish-card__icon">💫</span>
@@ -73,7 +73,7 @@
             <!-- 中部：宇航员 + 期望能量 -->
             <div class="wish-card__meta">
               <div class="wish-card__meta-item">
-                <span class="meta-label">申请人</span>
+                <span class="meta-label">提交宇航员</span>
                 <span class="meta-value">🧑‍🚀 {{ row.user_name }}</span>
               </div>
               <div class="wish-card__meta-item">
@@ -103,7 +103,7 @@
               </div>
             </div>
           </div>
-          <el-empty v-if="!loading && wishlists.length === 0" description="暂无心愿蓝图" />
+          <el-empty v-if="!loading && wishlists.length === 0" description="暂无星际蓝图待解析" />
         </div>
       </div>
 
@@ -147,13 +147,13 @@ const loadWishlists = async () => {
     const res = await api.get('/wishlists', { params })
     wishlists.value = res.data?.list || []
     total.value = res.data?.total || 0
-  } catch { ElMessage.error('加载心愿列表失败') }
+  } catch { ElMessage.error('加载星际蓝图失败') }
   finally { loading.value = false }
 }
 
 const handleApprove = (row) => {
   ElMessageBox.confirm(
-    `批准「${row.title}」后将自动创建下架商品，需前往补给物资库房手动上架。确认批准研发？`,
+    `批准「${row.title}」后将自动创建下架补给物资，需前往补给物资库房手动上架。确认批准研发？`,
     '🔬 批准研发',
     { confirmButtonText: '批准', cancelButtonText: '取消', type: 'success' }
   ).then(async () => {
@@ -166,14 +166,14 @@ const handleApprove = (row) => {
 }
 
 const handleReject = (row) => {
-  ElMessageBox.confirm(`确认驳回「${row.title}」申请？`, '❌ 驳回申请', {
+  ElMessageBox.confirm(`确认驳回「${row.title}」星际蓝图？`, '❌ 驳回蓝图', {
     confirmButtonText: '确认驳回',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
     try {
       await api.post(`/wishlists/${row.id}/reject`)
-      ElMessage.success('申请已驳回')
+      ElMessage.success('星际蓝图已驳回')
       await loadWishlists()
     } catch (err) { ElMessage.error(err.response?.data?.message || '操作失败') }
   }).catch(() => {})
@@ -211,7 +211,7 @@ onUnmounted(() => {
   }
 }
 
-/* ===== 移动端心愿蓝图卡片 ===== */
+/* ===== 移动端星际蓝图卡片 ===== */
 .mobile-card-list {
   display: flex;
   flex-direction: column;

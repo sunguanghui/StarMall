@@ -3,17 +3,17 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>用户管理</span>
+          <span>乘员编制管理</span>
           <el-button type="primary" @click="handleAdd">
             <el-icon><Plus /></el-icon>
-            新增用户
+            招募乘员
           </el-button>
         </div>
       </template>
 
       <el-form :inline="true" class="search-form">
         <el-form-item label="关键词">
-          <el-input v-model="keyword" placeholder="用户名/姓名" clearable @keyup.enter="loadUsers" />
+          <el-input v-model="keyword" placeholder="乘员代号/宇航员姓名" clearable @keyup.enter="loadUsers" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadUsers">查询</el-button>
@@ -24,7 +24,7 @@
       <div class="desktop-only-wrapper">
         <div class="table-scroll-wrapper">
           <el-table :data="users" style="width: 100%" v-loading="loading">
-            <el-table-column label="头像" width="70">
+            <el-table-column label="舰员图标" width="70">
               <template #default="{ row }">
                 <div class="table-avatar">
                   <span v-if="!isUrl(row.avatar)" class="table-avatar-emoji">{{ getEmoji(row.avatar) }}</span>
@@ -32,35 +32,35 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="username" label="用户名" width="110" />
-            <el-table-column prop="real_name" label="姓名" width="100" />
-            <el-table-column prop="email" label="邮箱" show-overflow-tooltip />
-            <el-table-column prop="phone" label="电话" width="130" />
-            <el-table-column prop="role" label="角色" width="130">
+            <el-table-column prop="username" label="乘员代号" width="110" />
+            <el-table-column prop="real_name" label="宇航员姓名" width="100" />
+            <el-table-column prop="email" label="星际邮箱" show-overflow-tooltip />
+            <el-table-column prop="phone" label="通讯频道" width="130" />
+            <el-table-column prop="role" label="舰队职务" width="130">
               <template #default="{ row }">
                 <el-tag :type="row.role === 'admin' ? 'danger' : 'primary'" size="small">
-                  {{ row.role === 'admin' ? (row.is_super_admin ? '👑 超级管理员' : '管理员') : '普通用户' }}
+                  {{ row.role === 'admin' ? (row.is_super_admin ? '👑 舰队总指挥' : '领航员') : '普通乘员' }}
                 </el-tag>
                 <el-tag v-if="row.is_child" type="warning" size="small" style="margin-left:4px;">🚀 宇航员</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="total_points" label="总积分" width="90" />
-            <el-table-column prop="available_points" label="可用积分" width="90" />
-            <el-table-column prop="created_at" label="创建时间" width="160" />
-            <el-table-column label="账号状态" width="110">
+            <el-table-column prop="total_points" label="总能量" width="90" />
+            <el-table-column prop="available_points" label="可用能量" width="90" />
+            <el-table-column prop="created_at" label="入籍时间" width="160" />
+            <el-table-column label="通行证状态" width="110">
               <template #default="{ row }">
                 <el-tag
                   :type="(row.status || 'active') === 'active' ? 'success' : 'warning'"
                   size="small"
                 >
-                  {{ (row.status || 'active') === 'active' ? '已激活' : '待审批' }}
+                  {{ (row.status || 'active') === 'active' ? '已就位' : '待审核' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="240" fixed="right">
+            <el-table-column label="指令" width="240" fixed="right">
               <template #default="{ row }">
-                <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-                <el-button link type="warning" @click="handleResetPassword(row)">重置密码</el-button>
+                <el-button link type="primary" @click="handleEdit(row)">重新校准</el-button>
+                <el-button link type="warning" @click="handleResetPassword(row)">重置通行证</el-button>
                 <el-button
                   v-if="(row.status || 'active') === 'pending'"
                   link
@@ -77,7 +77,6 @@
       <div class="mobile-only-wrapper">
         <div class="mobile-card-list" v-loading="loading">
           <div v-for="row in users" :key="row.id" class="user-card">
-            <!-- 卡片顶部：头像 + 姓名 + 角色标签 -->
             <div class="user-card-top">
               <div class="user-card-avatar">
                 <span v-if="!isUrl(row.avatar)" class="user-card-emoji">{{ getEmoji(row.avatar) }}</span>
@@ -88,33 +87,31 @@
                 <div class="user-card-username">@{{ row.username }}</div>
                 <div class="user-card-tags">
                   <el-tag :type="row.role === 'admin' ? 'danger' : 'primary'" size="small">
-                    {{ row.role === 'admin' ? (row.is_super_admin ? '👑 超级管理员' : '管理员') : '普通用户' }}
+                    {{ row.role === 'admin' ? (row.is_super_admin ? '👑 舰队总指挥' : '领航员') : '普通乘员' }}
                   </el-tag>
                   <el-tag v-if="row.is_child" type="warning" size="small">🚀 宇航员</el-tag>
                   <el-tag
                     :type="(row.status || 'active') === 'active' ? 'success' : 'warning'"
                     size="small"
                   >
-                    {{ (row.status || 'active') === 'active' ? '已激活' : '待审批' }}
+                    {{ (row.status || 'active') === 'active' ? '已就位' : '待审核' }}
                   </el-tag>
                 </div>
               </div>
-              <!-- 右侧积分 -->
               <div class="user-card-points">
                 <div class="user-card-points-val">{{ row.available_points }}</div>
-                <div class="user-card-points-label">可用积分</div>
+                <div class="user-card-points-label">可用能量</div>
               </div>
             </div>
 
-            <!-- 卡片底部：次要信息 + 操作按钮 -->
             <div class="user-card-bottom">
               <div class="user-card-meta">
                 <span v-if="row.phone">📱 {{ row.phone }}</span>
                 <span>🕐 {{ row.created_at }}</span>
               </div>
               <div class="user-card-actions">
-                <el-button size="small" type="primary" plain @click="handleEdit(row)">编辑</el-button>
-                <el-button size="small" type="warning" plain @click="handleResetPassword(row)">重置密码</el-button>
+                <el-button size="small" type="primary" plain @click="handleEdit(row)">重新校准</el-button>
+                <el-button size="small" type="warning" plain @click="handleResetPassword(row)">重置通行证</el-button>
                 <el-button
                   v-if="(row.status || 'active') === 'pending'"
                   size="small"
@@ -125,7 +122,7 @@
               </div>
             </div>
           </div>
-          <el-empty v-if="!loading && users.length === 0" description="暂无用户数据" />
+          <el-empty v-if="!loading && users.length === 0" description="暂无乘员数据" />
         </div>
       </div>
 
@@ -140,11 +137,10 @@
       />
     </el-card>
 
-    <!-- 新增/编辑对话框 -->
+    <!-- 招募/校准乘员对话框 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" :width="dialogWidth">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <!-- 头像选择区 -->
-        <el-form-item label="头像">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+        <el-form-item label="舰员图标">
           <div class="avatar-editor">
             <div class="avatar-preview">
               <span v-if="!isUrl(form.avatar)" class="preview-emoji">{{ getEmoji(form.avatar) }}</span>
@@ -174,40 +170,39 @@
           </div>
         </el-form-item>
 
-        <el-form-item label="用户名" prop="username">
+        <el-form-item label="乘员代号" prop="username">
           <el-input v-model="form.username" :disabled="!!form.id" />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="form.password" type="password" :placeholder="form.id ? '不修改请留空' : '请输入密码'" />
+        <el-form-item label="通行密钥" prop="password">
+          <el-input v-model="form.password" type="password" :placeholder="form.id ? '不修改请留空' : '请输入通行密钥'" />
         </el-form-item>
-        <el-form-item label="姓名" prop="real_name">
+        <el-form-item label="宇航员姓名" prop="real_name">
           <el-input v-model="form.real_name" />
         </el-form-item>
-        <el-form-item label="邮箱" prop="email">
+        <el-form-item label="星际邮箱" prop="email">
           <el-input v-model="form.email" />
         </el-form-item>
-        <el-form-item label="电话" prop="phone">
+        <el-form-item label="通讯频道" prop="phone">
           <el-input v-model="form.phone" />
         </el-form-item>
-        <el-form-item label="角色" prop="role" v-if="userStore.isSuperAdmin()">
+        <el-form-item label="舰队职务" prop="role" v-if="userStore.isSuperAdmin()">
           <el-select v-model="form.role">
-            <el-option label="普通用户" value="user" />
-            <el-option label="管理员" value="admin" />
+            <el-option label="普通乘员" value="user" />
+            <el-option label="领航员" value="admin" />
           </el-select>
         </el-form-item>
-        <el-form-item label="超级管理员" v-if="form.role === 'admin' && userStore.isSuperAdmin()">
+        <el-form-item label="舰队总指挥" v-if="form.role === 'admin' && userStore.isSuperAdmin()">
           <el-switch v-model="form.is_super_admin" />
-          <span style="margin-left:10px;font-size:12px;color:#aaa;">超级管理员拥有全部权限</span>
+          <span style="margin-left:10px;font-size:12px;color:#aaa;">舰队总指挥拥有全部权限</span>
         </el-form-item>
 
-        <!-- 儿童账号配置（仅普通用户可设置） -->
         <template v-if="form.role === 'user'">
           <el-divider content-position="left"><span style="font-size:13px;color:#aaa;">🚀 宇航员专属通道</span></el-divider>
-          <el-form-item label="儿童账号">
+          <el-form-item label="宇航员账号">
             <el-switch v-model="form.is_child" active-text="开启" inactive-text="关闭" />
             <span style="margin-left:10px;font-size:12px;color:#aaa;">开启后可在登录页宇航员通道选择该账号</span>
           </el-form-item>
-          <el-form-item v-if="form.is_child" label="图案密码">
+          <el-form-item v-if="form.is_child" label="星图密码">
             <div class="pattern-editor">
               <div class="pattern-icons">
                 <button
@@ -223,9 +218,9 @@
                 </button>
               </div>
               <div class="pattern-status">
-                <span v-if="!form.child_pattern?.length" style="color:#bbb;">点击上方图标设置解锁顺序（需选满3个）</span>
+                <span v-if="!form.child_pattern?.length" style="color:#bbb;">点击上方图标设置星图顺序（需选满3个）</span>
                 <span v-else-if="form.child_pattern.length < 3" style="color:#e6a23c;">已选 {{ form.child_pattern.length }} 个，还需 {{ 3 - form.child_pattern.length }} 个</span>
-                <span v-else style="color:#67c23a;">✓ 密码已设置：{{ form.child_pattern.map(i => patternIcons[i]).join(' → ') }}</span>
+                <span v-else style="color:#67c23a;">✓ 星图已设置：{{ form.child_pattern.map(i => patternIcons[i]).join(' → ') }}</span>
                 <el-button v-if="form.child_pattern?.length" link type="danger" size="small" @click="form.child_pattern = []">清除</el-button>
               </div>
             </div>
@@ -239,28 +234,28 @@
       </template>
     </el-dialog>
 
-    <!-- 重置密码对话框 -->
-    <el-dialog v-model="resetPasswordDialogVisible" title="重置密码" :width="resetDialogWidth">
-      <el-form :model="resetPasswordForm" label-width="80px">
+    <!-- 重置通行密钥对话框 -->
+    <el-dialog v-model="resetPasswordDialogVisible" title="重置通行密钥" :width="resetDialogWidth">
+      <el-form :model="resetPasswordForm" label-width="90px">
         <el-alert
-          :title="`正在为用户 ${resetPasswordForm.username} 重置密码`"
+          :title="`正在为乘员 ${resetPasswordForm.username} 重置通行密钥`"
           type="info"
           :closable="false"
           style="margin-bottom: 20px;"
         />
-        <el-form-item label="新密码">
+        <el-form-item label="新密钥">
           <el-input
             v-model="resetPasswordForm.new_password"
             type="password"
-            placeholder="请输入新密码（至少6位）"
+            placeholder="请输入新通行密钥（至少6位）"
             show-password
           />
         </el-form-item>
-        <el-form-item label="确认密码">
+        <el-form-item label="确认密钥">
           <el-input
             v-model="resetPasswordForm.confirm_password"
             type="password"
-            placeholder="请再次输入新密码"
+            placeholder="请再次输入通行密钥"
             show-password
           />
         </el-form-item>
@@ -310,7 +305,7 @@ const dialogWidth = computed(() => isMobile.value ? '92%' : '520px')
 const resetDialogWidth = computed(() => isMobile.value ? '92%' : '400px')
 
 const dialogVisible = ref(false)
-const dialogTitle = ref('新增用户')
+const dialogTitle = ref('招募乘员')
 const resetPasswordDialogVisible = ref(false)
 const resetting = ref(false)
 const resetPasswordForm = reactive({
@@ -349,9 +344,9 @@ const togglePatternIcon = (idx) => {
 }
 
 const rules = computed(() => ({
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: form.id ? [] : [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  real_name: [{ required: true, message: '请输入姓名', trigger: 'blur' }]
+  username: [{ required: true, message: '请输入乘员代号', trigger: 'blur' }],
+  password: form.id ? [] : [{ required: true, message: '请输入通行密钥', trigger: 'blur' }],
+  real_name: [{ required: true, message: '请输入宇航员姓名', trigger: 'blur' }]
 }))
 
 const loadUsers = async () => {
@@ -363,20 +358,20 @@ const loadUsers = async () => {
     users.value = res.data.list
     total.value = res.data.total
   } catch (error) {
-    console.error('加载用户失败:', error)
+    console.error('加载乘员数据失败:', error)
   } finally {
     loading.value = false
   }
 }
 
 const handleAdd = () => {
-  dialogTitle.value = '新增用户'
+  dialogTitle.value = '招募乘员'
   Object.assign(form, { id: null, username: '', password: '', real_name: '', email: '', phone: '', role: 'user', is_super_admin: false, avatar: 'preset_1', is_child: false, child_pattern: [] })
   dialogVisible.value = true
 }
 
 const handleEdit = (row) => {
-  dialogTitle.value = '编辑用户'
+  dialogTitle.value = '重新校准乘员档案'
   Object.assign(form, {
     id: row.id,
     username: row.username,
@@ -420,7 +415,7 @@ const handleSubmit = async () => {
   await formRef.value.validate(async (valid) => {
     if (!valid) return
     if (form.is_child && (!form.child_pattern || form.child_pattern.length !== 3)) {
-      ElMessage.error('请为儿童账号设置完整的3步图案密码')
+      ElMessage.error('请为宇航员账号设置完整的3步星图密码')
       return
     }
     submitting.value = true
@@ -429,10 +424,10 @@ const handleSubmit = async () => {
         const payload = { ...form }
         if (!payload.password) delete payload.password
         await api.put(`/users/${form.id}`, payload)
-        ElMessage.success('更新成功')
+        ElMessage.success('乘员档案校准成功')
       } else {
         await api.post('/users', form)
-        ElMessage.success('创建成功')
+        ElMessage.success('乘员招募成功')
       }
       dialogVisible.value = false
       await loadUsers()
@@ -453,18 +448,18 @@ const handleResetPassword = (row) => {
 }
 
 const handleResetPasswordSubmit = async () => {
-  if (!resetPasswordForm.new_password) { ElMessage.error('请输入新密码'); return }
-  if (resetPasswordForm.new_password.length < 6) { ElMessage.error('密码长度至少6位'); return }
-  if (resetPasswordForm.new_password !== resetPasswordForm.confirm_password) { ElMessage.error('两次输入的密码不一致'); return }
+  if (!resetPasswordForm.new_password) { ElMessage.error('请输入新通行密钥'); return }
+  if (resetPasswordForm.new_password.length < 6) { ElMessage.error('通行密钥长度至少6位'); return }
+  if (resetPasswordForm.new_password !== resetPasswordForm.confirm_password) { ElMessage.error('两次输入的密钥不一致'); return }
   resetting.value = true
   try {
     await api.post(`/users/${resetPasswordForm.user_id}/reset-password`, {
       new_password: resetPasswordForm.new_password
     })
-    ElMessage.success('密码重置成功')
+    ElMessage.success('通行密钥重置成功')
     resetPasswordDialogVisible.value = false
   } catch (error) {
-    console.error('重置密码失败:', error)
+    console.error('重置密钥失败:', error)
   } finally {
     resetting.value = false
   }
@@ -702,7 +697,7 @@ onUnmounted(() => {
   box-shadow: 0 0 0 3px rgba(255,107,157,0.2);
 }
 
-/* ===== 图案密码编辑器 ===== */
+/* ===== 星图密码编辑器 ===== */
 .pattern-editor { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 
 .pattern-icons {

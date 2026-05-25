@@ -8,7 +8,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>兑换发货队列</span>
+          <span>补给调度队列</span>
           <el-select v-model="filterStatus" size="small" style="width:120px" @change="loadRecords">
             <el-option label="待交付" value="pending" />
             <el-option label="已交付" value="completed" />
@@ -23,19 +23,19 @@
         <div class="table-scroll-wrapper">
           <el-table :data="records" v-loading="loading" style="width:100%">
             <el-table-column prop="user_name" label="宇航员" width="100" />
-            <el-table-column prop="product_name" label="补给物资" min-width="150" show-overflow-tooltip />
-            <el-table-column prop="quantity" label="数量" width="70" />
+            <el-table-column prop="product_name" label="补给物资名称" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="quantity" label="调度数量" width="90" />
             <el-table-column prop="points_spent" label="消耗能量" width="100">
               <template #default="{ row }">{{ row.points_spent }} ⚡</template>
             </el-table-column>
-            <el-table-column prop="status_name" label="状态" width="100">
+            <el-table-column prop="status_name" label="调度状态" width="100">
               <template #default="{ row }">
                 <el-tag :type="statusTagType(row.status)" size="small">{{ row.status_name }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="remark" label="备注" show-overflow-tooltip />
             <el-table-column prop="created_at" label="申请时间" width="160" />
-            <el-table-column label="操作" width="160" fixed="right">
+            <el-table-column label="指令" width="160" fixed="right">
               <template #default="{ row }">
                 <el-button
                   v-if="row.status === 'pending'"
@@ -80,14 +80,14 @@
               </el-tag>
             </div>
 
-            <!-- 中部：宇航员、数量、消耗能量 -->
+            <!-- 中部：宇航员、调度数量、消耗能量 -->
             <div class="delivery-card__meta">
               <div class="delivery-card__meta-item">
                 <span class="meta-label">宇航员</span>
                 <span class="meta-value">🧑‍🚀 {{ row.user_name }}</span>
               </div>
               <div class="delivery-card__meta-item">
-                <span class="meta-label">数量</span>
+                <span class="meta-label">调度数量</span>
                 <span class="meta-value">× {{ row.quantity }}</span>
               </div>
               <div class="delivery-card__meta-item">
@@ -124,7 +124,7 @@
               </div>
             </div>
           </div>
-          <el-empty v-if="!loading && records.length === 0" description="暂无发货记录" />
+          <el-empty v-if="!loading && records.length === 0" description="暂无补给调度记录" />
         </div>
       </div>
 

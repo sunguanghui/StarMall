@@ -2,13 +2,13 @@
   <div class="task-approval">
     <div class="page-header">
       <h2 class="page-title">✅ 任务核验舱</h2>
-      <p class="page-subtitle">审核宇航员提交的任务打卡，批准后自动注入能量</p>
+      <p class="page-subtitle">审核宇航员提交的探索日志，批准后自动注入能量</p>
     </div>
 
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>打卡审核队列</span>
+          <span>探索日志审核队列</span>
           <el-select v-model="filterStatus" size="small" style="width:120px" @change="loadLogs">
             <el-option label="待核验" value="pending" />
             <el-option label="已注入" value="approved" />
@@ -23,15 +23,15 @@
         <div class="table-scroll-wrapper">
           <el-table :data="logs" v-loading="loading" style="width:100%">
             <el-table-column prop="user_name" label="宇航员" width="100" />
-            <el-table-column prop="task_title" label="任务名称" min-width="150" show-overflow-tooltip />
-            <el-table-column prop="task_type" label="类型" width="120">
+            <el-table-column prop="task_title" label="星际任务名称" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="task_type" label="任务类型" width="120">
               <template #default="{ row }">
                 <el-tag :type="row.task_type === 'daily' ? 'primary' : 'warning'" size="small">
-                  {{ row.task_type === 'daily' ? '📅 每日日常' : '🏆 阶段里程碑' }}
+                  {{ row.task_type === 'daily' ? '📅 每日探索' : '🏆 阶段里程碑' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="energy_reward" label="奖励能量" width="100">
+            <el-table-column prop="energy_reward" label="注入能量" width="100">
               <template #default="{ row }">+{{ row.energy_reward }} ⚡</template>
             </el-table-column>
             <el-table-column prop="reviewer_name" label="负责赋能官" width="110">
@@ -40,17 +40,17 @@
                 <span v-else class="text-muted">全体领航员</span>
               </template>
             </el-table-column>
-            <el-table-column prop="status_name" label="状态" width="90">
+            <el-table-column prop="status_name" label="核验状态" width="90">
               <template #default="{ row }">
                 <el-tag :type="statusTagType(row.status)" size="small">{{ row.status_name }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="created_at" label="提交时间" width="160" />
-            <el-table-column label="操作" width="180" fixed="right">
+            <el-table-column label="指令" width="180" fixed="right">
               <template #default="{ row }">
                 <template v-if="row.status === 'pending'">
                   <el-button link type="success" @click="handleApprove(row)" :loading="operating === row.id">⚡ 能量注入</el-button>
-                  <el-button link type="danger" @click="handleReject(row)" :loading="operating === row.id">🔄 驳回重试</el-button>
+                  <el-button link type="danger" @click="handleReject(row)" :loading="operating === row.id">🔄 驳回重探</el-button>
                 </template>
                 <span v-else class="text-muted">已处理</span>
               </template>
@@ -83,10 +83,10 @@
               </el-tag>
             </div>
 
-            <!-- 中部：类型、奖励能量、负责赋能官 -->
+            <!-- 中部：类型、注入能量、负责赋能官 -->
             <div class="approval-card__meta">
               <el-tag :type="row.task_type === 'daily' ? 'primary' : 'warning'" size="small">
-                {{ row.task_type === 'daily' ? '📅 每日日常' : '🏆 阶段里程碑' }}
+                {{ row.task_type === 'daily' ? '📅 每日探索' : '🏆 阶段里程碑' }}
               </el-tag>
               <span class="approval-card__energy">+{{ row.energy_reward }} ⚡</span>
               <span class="approval-card__reviewer">
@@ -112,12 +112,12 @@
                   plain
                   :loading="operating === row.id"
                   @click="handleReject(row)"
-                >🔄 驳回重试</el-button>
+                >🔄 驳回重探</el-button>
               </template>
               <span v-else class="text-muted">已处理</span>
             </div>
           </div>
-          <el-empty v-if="!loading && logs.length === 0" description="暂无审核记录" />
+          <el-empty v-if="!loading && logs.length === 0" description="暂无探索日志待审核" />
         </div>
       </div>
 
@@ -180,10 +180,10 @@ const handleApprove = async (row) => {
 
 const handleReject = async (row) => {
   try {
-    await ElMessageBox.confirm(`确定驳回 ${row.user_name} 的「${row.task_title}」打卡？`, '驳回重试', { type: 'warning' })
+    await ElMessageBox.confirm(`确定驳回 ${row.user_name} 的「${row.task_title}」探索日志？`, '驳回重探', { type: 'warning' })
     operating.value = row.id
     await api.post(`/task-logs/${row.id}/reject`)
-    ElMessage.success('已驳回，宇航员可重新提交')
+    ElMessage.success('已驳回，宇航员可重新提交探索日志')
     await loadLogs()
   } catch {}
   finally { operating.value = null }

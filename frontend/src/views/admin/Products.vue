@@ -3,17 +3,17 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>商品管理</span>
+          <span>补给物资库房</span>
           <el-button type="primary" @click="handleAdd">
             <el-icon><Plus /></el-icon>
-            新增商品
+            引入物资
           </el-button>
         </div>
       </template>
 
       <el-form :inline="true" class="search-form">
         <el-form-item label="关键词">
-          <el-input v-model="keyword" placeholder="商品名称" clearable @keyup.enter="loadProducts" />
+          <el-input v-model="keyword" placeholder="物资名称" clearable @keyup.enter="loadProducts" />
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="status" placeholder="全部" clearable @change="loadProducts">
@@ -30,16 +30,16 @@
       <div class="desktop-only-wrapper">
         <div class="table-scroll-wrapper">
           <el-table :data="products" style="width: 100%" v-loading="loading">
-            <el-table-column prop="name" label="商品名称" show-overflow-tooltip />
+            <el-table-column prop="name" label="物资名称" show-overflow-tooltip />
             <el-table-column prop="points_required" label="所需能量" width="100" />
-            <el-table-column prop="stock" label="库存" width="80" />
-            <el-table-column label="盲盒" width="70">
+            <el-table-column prop="stock" label="库存数量" width="80" />
+            <el-table-column label="星际盲盒" width="80">
               <template #default="{ row }">
                 <el-tag v-if="row.is_blind_box" type="warning" size="small">🎁</el-tag>
                 <span v-else style="color: #ccc;">—</span>
               </template>
             </el-table-column>
-            <el-table-column prop="status_name" label="状态" width="100">
+            <el-table-column prop="status_name" label="上架状态" width="100">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'on_shelf' ? 'success' : 'info'" size="small">
                   {{ row.status_name }}
@@ -48,13 +48,13 @@
             </el-table-column>
             <el-table-column prop="sort_order" label="排序" width="80" />
             <el-table-column prop="created_at" label="创建时间" width="180" />
-            <el-table-column label="操作" width="220" fixed="right">
+            <el-table-column label="指令" width="220" fixed="right">
               <template #default="{ row }">
-                <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+                <el-button link type="primary" @click="handleEdit(row)">重新校准</el-button>
                 <el-button link type="warning" @click="handleToggleStatus(row)">
                   {{ row.status === 'on_shelf' ? '下架' : '上架' }}
                 </el-button>
-                <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+                <el-button link type="danger" @click="handleDelete(row)">销毁</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -98,7 +98,7 @@
             <!-- 中部：库存 + 排序 -->
             <div class="product-card__meta">
               <div class="product-card__meta-item">
-                <span class="meta-label">库存</span>
+                <span class="meta-label">库存数量</span>
                 <span class="meta-value" :class="{ 'meta-value--low': row.stock === 0 }">
                   {{ row.stock === 0 ? '已售罄' : row.stock }}
                 </span>
@@ -115,17 +115,17 @@
 
             <!-- 底部操作按钮 -->
             <div class="product-card__actions">
-              <el-button size="small" type="primary" plain @click="handleEdit(row)">编辑</el-button>
+              <el-button size="small" type="primary" plain @click="handleEdit(row)">重新校准</el-button>
               <el-button
                 size="small"
                 type="warning"
                 plain
                 @click="handleToggleStatus(row)"
               >{{ row.status === 'on_shelf' ? '下架' : '上架' }}</el-button>
-              <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+              <el-button size="small" type="danger" plain @click="handleDelete(row)">销毁</el-button>
             </div>
           </div>
-          <el-empty v-if="!loading && products.length === 0" description="暂无商品数据" />
+          <el-empty v-if="!loading && products.length === 0" description="暂无补给物资数据" />
         </div>
       </div>
 
@@ -142,13 +142,13 @@
 
     <el-dialog v-model="dialogVisible" :title="dialogTitle" :width="dialogWidth">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="商品名称" prop="name">
+        <el-form-item label="物资名称" prop="name">
           <el-input v-model="form.name" />
         </el-form-item>
-        <el-form-item label="商品描述" prop="description">
+        <el-form-item label="物资描述" prop="description">
           <el-input v-model="form.description" type="textarea" :rows="3" />
         </el-form-item>
-        <el-form-item label="商品图片" prop="image_url">
+        <el-form-item label="物资图片" prop="image_url">
           <el-upload
             class="image-uploader"
             :action="`/api/upload`"
@@ -169,7 +169,7 @@
         <el-form-item label="库存数量" prop="stock">
           <el-input-number v-model="form.stock" :min="0" />
         </el-form-item>
-        <el-form-item label="是否盲盒">
+        <el-form-item label="星际盲盒">
           <el-switch v-model="form.is_blind_box" active-text="是" inactive-text="否" />
         </el-form-item>
         <el-form-item label="排序" prop="sort_order">
@@ -213,7 +213,7 @@ const dialogVisible = ref(false)
 const isMobile = ref(window.innerWidth <= 768)
 const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
 const dialogWidth = computed(() => isMobile.value ? '92%' : '600px')
-const dialogTitle = ref('新增商品')
+const dialogTitle = ref('引入补给物资')
 const formRef = ref(null)
 const submitting = ref(false)
 
@@ -230,7 +230,7 @@ const form = reactive({
 })
 
 const rules = {
-  name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入物资名称', trigger: 'blur' }],
   points_required: [{ required: true, message: '请输入所需能量', trigger: 'blur' }]
 }
 
@@ -243,20 +243,20 @@ const loadProducts = async () => {
     products.value = res.data.list
     total.value = res.data.total
   } catch (error) {
-    console.error('加载商品失败:', error)
+    console.error('加载补给物资失败:', error)
   } finally {
     loading.value = false
   }
 }
 
 const handleAdd = () => {
-  dialogTitle.value = '新增商品'
+  dialogTitle.value = '引入补给物资'
   Object.assign(form, { id: null, name: '', description: '', image_url: '', points_required: 10, stock: 0, sort_order: 0, is_blind_box: false, status: 'off_shelf' })
   dialogVisible.value = true
 }
 
 const handleEdit = (row) => {
-  dialogTitle.value = '编辑商品'
+  dialogTitle.value = '校准物资参数'
   Object.assign(form, row)
   dialogVisible.value = true
 }
@@ -269,10 +269,10 @@ const handleSubmit = async () => {
     try {
       if (form.id) {
         await api.put(`/products/${form.id}`, form)
-        ElMessage.success('更新成功')
+        ElMessage.success('物资参数校准成功')
       } else {
         await api.post('/products', form)
-        ElMessage.success('创建成功')
+        ElMessage.success('补给物资已引入库房')
       }
       dialogVisible.value = false
       await loadProducts()
@@ -287,7 +287,7 @@ const handleSubmit = async () => {
 const handleToggleStatus = async (row) => {
   try {
     await api.post(`/products/${row.id}/toggle-status`)
-    ElMessage.success(`商品已${row.status === 'on_shelf' ? '下架' : '上架'}`)
+    ElMessage.success(`补给物资已${row.status === 'on_shelf' ? '下架' : '上架'}`)
     await loadProducts()
   } catch (error) {
     console.error('操作失败:', error)
@@ -295,17 +295,17 @@ const handleToggleStatus = async (row) => {
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定要删除商品 "${row.name}" 吗？`, '提示', {
+  ElMessageBox.confirm(`确定要销毁补给物资「${row.name}」吗？`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
     try {
       await api.delete(`/products/${row.id}`)
-      ElMessage.success('删除成功')
+      ElMessage.success('补给物资已销毁')
       await loadProducts()
     } catch (error) {
-      console.error('删除失败:', error)
+      console.error('销毁失败:', error)
     }
   })
 }

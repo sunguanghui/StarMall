@@ -1,16 +1,16 @@
 <template>
   <div class="admin-tasks">
     <div class="page-header">
-      <h2 class="page-title">🎯 任务定义管理</h2>
-      <p class="page-subtitle">创建和管理宇航员可执行的任务蓝图（审核打卡请前往「任务核验舱」）</p>
+      <h2 class="page-title">🎯 星际任务定义管理</h2>
+      <p class="page-subtitle">创建和管理宇航员可执行的星际任务蓝图（审核探索日志请前往「任务核验舱」）</p>
     </div>
 
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>任务蓝图列表</span>
+          <span>星际任务蓝图列表</span>
           <el-button type="primary" @click="handleAdd">
-            <el-icon><Plus /></el-icon> 新增任务
+            <el-icon><Plus /></el-icon> 创建任务
           </el-button>
         </div>
       </template>
@@ -19,13 +19,13 @@
       <div class="desktop-only-wrapper">
         <div class="table-scroll-wrapper">
           <el-table :data="tasks" v-loading="tasksLoading" style="width:100%">
-            <el-table-column prop="title" label="任务名称" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="type_name" label="类型" width="120">
+            <el-table-column prop="title" label="星际任务名称" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="type_name" label="任务类型" width="120">
               <template #default="{ row }">
                 <el-tag :type="row.type === 'daily' ? 'primary' : 'warning'" size="small">{{ row.type_name }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="energy_reward" label="奖励能量" width="100">
+            <el-table-column prop="energy_reward" label="注入能量" width="100">
               <template #default="{ row }">+{{ row.energy_reward }} ⚡</template>
             </el-table-column>
             <el-table-column prop="reviewer_name" label="专属赋能官" width="120">
@@ -34,15 +34,15 @@
                 <span v-else class="text-muted">全体领航员</span>
               </template>
             </el-table-column>
-            <el-table-column prop="is_active" label="状态" width="90">
+            <el-table-column prop="is_active" label="任务状态" width="90">
               <template #default="{ row }">
                 <el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ row.is_active ? '已启用' : '已停用' }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="created_at" label="创建时间" width="160" />
-            <el-table-column label="操作" width="160" fixed="right">
+            <el-table-column label="指令" width="160" fixed="right">
               <template #default="{ row }">
-                <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+                <el-button link type="primary" @click="handleEdit(row)">重新校准</el-button>
                 <el-button link :type="row.is_active ? 'danger' : 'success'" @click="handleToggle(row)">
                   {{ row.is_active ? '停用' : '启用' }}
                 </el-button>
@@ -71,16 +71,16 @@
               </el-tag>
             </div>
 
-            <!-- 中部：类型、奖励能量、专属赋能官 -->
+            <!-- 中部：类型、注入能量、专属赋能官 -->
             <div class="task-card__meta">
               <div class="task-card__meta-item">
-                <span class="meta-label">类型</span>
+                <span class="meta-label">任务类型</span>
                 <el-tag :type="row.type === 'daily' ? 'primary' : 'warning'" size="small">
                   {{ row.type_name }}
                 </el-tag>
               </div>
               <div class="task-card__meta-item">
-                <span class="meta-label">奖励能量</span>
+                <span class="meta-label">注入能量</span>
                 <span class="meta-value energy">+{{ row.energy_reward }} ⚡</span>
               </div>
               <div class="task-card__meta-item">
@@ -98,7 +98,7 @@
                   type="primary"
                   plain
                   @click="handleEdit(row)"
-                >编辑</el-button>
+                >重新校准</el-button>
                 <el-button
                   size="small"
                   :type="row.is_active ? 'danger' : 'success'"
@@ -108,24 +108,24 @@
               </div>
             </div>
           </div>
-          <el-empty v-if="!tasksLoading && tasks.length === 0" description="暂无任务蓝图" />
+          <el-empty v-if="!tasksLoading && tasks.length === 0" description="暂无星际任务蓝图" />
         </div>
       </div>
     </el-card>
 
-    <!-- 新增/编辑任务对话框 -->
+    <!-- 创建/校准任务对话框 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" :width="dialogWidth">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="任务名称" prop="title">
-          <el-input v-model="form.title" placeholder="请输入任务名称" />
+          <el-input v-model="form.title" placeholder="请输入星际任务名称" />
         </el-form-item>
         <el-form-item label="任务类型" prop="type">
           <el-radio-group v-model="form.type">
-            <el-radio value="daily">📅 每日日常</el-radio>
+            <el-radio value="daily">📅 每日探索</el-radio>
             <el-radio value="milestone">🏆 阶段里程碑</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="奖励能量" prop="energy_reward">
+        <el-form-item label="注入能量" prop="energy_reward">
           <el-input-number v-model="form.energy_reward" :min="1" :max="100" />
         </el-form-item>
         <el-form-item label="专属赋能官" v-if="userStore.isSuperAdmin()">
@@ -137,7 +137,7 @@
               :value="admin.id"
             />
           </el-select>
-          <div class="form-tip">若不选择，则所有领航员均可核验</div>
+          <div class="form-tip">若不选择，则所有领航员均可核验探索日志</div>
         </el-form-item>
         <el-form-item label="是否启用">
           <el-switch v-model="form.is_active" />
@@ -168,13 +168,13 @@ const dialogVisible = ref(false)
 const isMobile = ref(window.innerWidth <= 768)
 const handleResize = () => { isMobile.value = window.innerWidth <= 768 }
 const dialogWidth = computed(() => isMobile.value ? '92%' : '480px')
-const dialogTitle = ref('新增任务')
+const dialogTitle = ref('创建星际任务')
 const submitting = ref(false)
 const formRef = ref(null)
 
 const form = reactive({ id: null, title: '', type: 'daily', energy_reward: 1, is_active: true, reviewer_id: null })
 const rules = {
-  title: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
+  title: [{ required: true, message: '请输入星际任务名称', trigger: 'blur' }],
   type: [{ required: true }],
   energy_reward: [{ required: true }]
 }
@@ -184,7 +184,7 @@ const loadTasks = async () => {
   try {
     const res = await api.get('/tasks', { params: { include_inactive: true } })
     tasks.value = res.data || []
-  } catch { ElMessage.error('加载任务失败') }
+  } catch { ElMessage.error('加载星际任务失败') }
   finally { tasksLoading.value = false }
 }
 
@@ -196,13 +196,13 @@ const loadAdmins = async () => {
 }
 
 const handleAdd = () => {
-  dialogTitle.value = '新增任务'
+  dialogTitle.value = '创建星际任务'
   Object.assign(form, { id: null, title: '', type: 'daily', energy_reward: 1, is_active: true, reviewer_id: null })
   dialogVisible.value = true
 }
 
 const handleEdit = (row) => {
-  dialogTitle.value = '编辑任务'
+  dialogTitle.value = '重新校准任务参数'
   Object.assign(form, {
     id: row.id,
     title: row.title,
@@ -217,7 +217,7 @@ const handleEdit = (row) => {
 const handleToggle = async (row) => {
   try {
     await api.put(`/tasks/${row.id}`, { is_active: !row.is_active })
-    ElMessage.success(row.is_active ? '任务已停用' : '任务已启用')
+    ElMessage.success(row.is_active ? '星际任务已停用' : '星际任务已启用')
     await loadTasks()
   } catch (err) { ElMessage.error(err.response?.data?.message || '操作失败') }
 }
@@ -232,10 +232,10 @@ const handleSubmit = async () => {
       if (!userStore.isSuperAdmin()) delete payload.reviewer_id
       if (form.id) {
         await api.put(`/tasks/${form.id}`, payload)
-        ElMessage.success('更新成功')
+        ElMessage.success('任务参数校准成功')
       } else {
         await api.post('/tasks', payload)
-        ElMessage.success('创建成功')
+        ElMessage.success('星际任务创建成功')
       }
       dialogVisible.value = false
       await loadTasks()
