@@ -191,7 +191,7 @@ const loadTasks = async () => {
 const loadAdmins = async () => {
   try {
     const res = await api.get('/admins')
-    adminOptions.value = res.data.data
+    adminOptions.value = res.data
   } catch {}
 }
 
